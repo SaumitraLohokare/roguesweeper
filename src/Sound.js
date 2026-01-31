@@ -160,7 +160,7 @@ export class SoundManager {
         // Play the note if it's not a rest (freq > 0)
         if (note.f > 0) {
             // Use triangle/sine for soft background
-            this.playTone(note.f, 'triangle', note.d * secondsPerBeat * 0.9, 0.03, now + 0.05);
+            this.playTone(note.f, 'triangle', note.d * secondsPerBeat * 0.9, 0.2, now + 0.05);
         }
 
         this.noteIndex = (this.noteIndex + 1) % melodySequence.length;

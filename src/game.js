@@ -65,6 +65,23 @@ const TUTORIAL_LEVELS = [
             { x: 4, y: 5 },
             { x: 5, y: 5 },
         ]
+    },
+    {
+        width: 4,
+        height: 10,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 1, y: 3 },
+            { x: 1, y: 7 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+        ]
     }
 ];
 
@@ -234,6 +251,7 @@ function startNewGame() {
     }
 
     gameState.player.health = 3;
+    gameState.player.bombDetectorCount = 3;
 }
 
 function loadTutorialLevel(index) {
@@ -308,6 +326,7 @@ function startNextLevel() {
         setTutorialCompletedLevel(-1);
         if (gameState.player) {
             gameState.player.health = 3;
+            gameState.player.bombCount = 3;
         }
     }
 

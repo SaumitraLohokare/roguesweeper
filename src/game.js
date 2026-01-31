@@ -65,6 +65,23 @@ const TUTORIAL_LEVELS = [
             { x: 4, y: 5 },
             { x: 5, y: 5 },
         ]
+    },
+    {
+        width: 4,
+        height: 10,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 1, y: 3 },
+            { x: 1, y: 7 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+        ]
     }
 ];
 
@@ -234,6 +251,7 @@ function startNewGame() {
     }
 
     gameState.player.health = 3;
+    gameState.player.bombDetectorCount = 3;
 }
 
 function loadTutorialLevel(index) {
@@ -288,7 +306,6 @@ function loadTutorialLevel(index) {
 
 function startNextLevel() {
     // Increment level
-    gameState.roomNumber++;
     let currentTutorialIndex = getTutorialCompletedLevel();
 
     // Check if we're still in tutorial mode
@@ -308,7 +325,12 @@ function startNextLevel() {
         setTutorialCompletedLevel(-1);
         if (gameState.player) {
             gameState.player.health = 3;
+            gameState.player.bombCount = 3;
         }
+        // Room number stays at 1 for the first random room
+    } else {
+        // Already in random generation mode, continue as normal
+        gameState.roomNumber++;
     }
 
     // Already in random generation mode, or just finished last tutorial
@@ -699,7 +721,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('ACT / MARK', centerX, y + 35 + labelGap);
+        ctx.fillText('ATTACK / MARK', centerX, y + 35 + labelGap);
     }
     y += 35 + 35 + labelGap; // Up row + Down row + Label gap
 
@@ -834,7 +856,8 @@ function render(ctx) {
 
         // Draw Room Number (Top Center of Middle)
         ctx.textAlign = 'center';
-        ctx.fillText(`Room: ${gameState.roomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
+        const displayRoomNumber = gameState.currentTutorialIndex >= 0 ? 0 : gameState.roomNumber;
+        ctx.fillText(`Room: ${displayRoomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
 
         // Draw Equipped Item and Flag Count (Bottom Left of Middle)
         ctx.textAlign = 'left';

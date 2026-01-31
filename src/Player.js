@@ -7,7 +7,7 @@ export const EQUIPMENTS = {
 }
 
 export class Player {
-    constructor(x, y, initialHealth = 3) {
+    constructor(x, y, initialHealth = 3, bombDetectorCount = 3) {
         this.x = x;
         this.y = y;
 
@@ -15,7 +15,7 @@ export class Player {
 
         this.equippedItem = 'sword';  // 'sword' or 'bombDetector'
 
-        this.bombDetectorCount = 3;  // Start with 3 bomb detectors
+        this.bombDetectorCount = bombDetectorCount;  // Start with 3 bomb detectors
 
         this.isDamageFlashing = false  // Track damage flash effect
     }

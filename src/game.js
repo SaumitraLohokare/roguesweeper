@@ -699,7 +699,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('ACT / MARK', centerX, y + 35 + labelGap);
+        ctx.fillText('ATTACK / MARK', centerX, y + 35 + labelGap);
     }
     y += 35 + 35 + labelGap; // Up row + Down row + Label gap
 

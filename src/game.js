@@ -211,7 +211,7 @@ function loadTutorialLevel(index) {
 
     // Create player at entrance
     const entrance = gameState.currentRoom.entrancePos;
-    gameState.player = new Player(entrance.x, entrance.y);
+    gameState.player = new Player(entrance.x, entrance.y, 1);
 
     // Trigger initial room logic for player start position
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
@@ -237,7 +237,9 @@ function startNextLevel() {
         console.log('All tutorial levels completed!');
         gameState.currentTutorialIndex = -1;
         setTutorialCompletedLevel(-1);
-
+        if (gameState.player) {
+            gameState.player.health = 3;
+        }
     }
 
     // Already in random generation mode, or just finished last tutorial
@@ -259,7 +261,7 @@ function startRandomLevel(entranceSide) {
     const entrance = gameState.currentRoom.entrancePos;
 
     if (!gameState.player) {
-        gameState.player = new Player(entrance.x, entrance.y);
+        gameState.player = new Player(entrance.x, entrance.y, 3);
     } else {
         // Move player to new entrance
         gameState.player.x = entrance.x;

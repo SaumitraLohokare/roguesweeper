@@ -85,7 +85,7 @@ let gameState = {
     roomNumber: 1,
     volume: 0.8,
     isDraggingVolume: false,
-    volumeSlider: { x: 0, y: 0, w: 100, h: 20 } // Store slider layout for click detection
+    volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
     currentTutorialIndex: 0  // Track tutorial progress: 0-based index, -1 means tutorials complete
 };
 

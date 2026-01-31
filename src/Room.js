@@ -1444,8 +1444,9 @@ export class Room {
      * @param {number} y 
      */
     revealCell(x, y) {
-        if (x >= 0 && x < this.width && y >= 0 && y < this.height && this.cellData[y][x]) {
+        if (x >= 0 && x < this.width && y >= 0 && y < this.height && this.cellData[y][x] && this.cellData[y][x].hidden) {
             this.cellData[y][x].hidden = false;
+            this.removeFlag(x, y);
         }
     }
 }

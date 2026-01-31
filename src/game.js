@@ -8,9 +8,9 @@ import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 6, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
-    { maxRoom: 10, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
-    { maxRoom: 15, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
+    { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
+    { maxRoom: 6, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
+    { maxRoom: 10, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
     { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
 ];
 

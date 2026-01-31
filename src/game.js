@@ -206,7 +206,6 @@ function update() {
 
     if (dx !== 0 || dy !== 0) {
         if (gameState.player.move(dx, dy, gameState.currentRoom)) {
-
             const playerEnterResultState = gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
             if (playerEnterResultState != PLAYER_MOVE_RESULT.INVALID) {
                 actionTaken = true;

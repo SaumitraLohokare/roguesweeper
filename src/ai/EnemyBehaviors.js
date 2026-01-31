@@ -37,7 +37,7 @@ export class BaseChaseBehavior {
                 const { x, y } = this.lastDesiredMove;
                 if (room.isHidden(x, y) && room.isValidMove(x, y)) {
                     console.log('Enemy breaks tile!');
-                    room.revealCell(x, y);
+                    room.floodFillUnhide(x, y);
 
                     // Try to move there now (handles bomb interaction)
                     if (this.tryMoveForced(enemy, x, y, room, player)) {

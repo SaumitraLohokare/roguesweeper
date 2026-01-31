@@ -5,8 +5,10 @@
 export const SPRITES = {
     // Example sprite definitions - update these based on your actual sprite sheet layout
     // Format: { sheet: 'sheet_name', row: number, col: number }
-    FLAG_DANGER: { sheet: 'sheet_1', row: 23, col: 21 },  // Red/danger bomb detector (bomb underneath)
-    FLAG_SAFE: { sheet: 'sheet_1', row: 24, col: 26 },    // Green/safe bomb detector (no bomb)
+    BOMB_DETECTOR_DANGER: { sheet: 'sheet_1', row: 27, col: 22 },  // Red/danger bomb detector (bomb underneath)
+    BOMB_DETECTOR_SAFE: { sheet: 'sheet_1', row: 27, col: 26 },    // Green/safe bomb detector (no bomb)
+
+    FLAG: { sheet: 'sheet_1', row: 24, col: 22 },    // Green/safe bomb detector (no bomb)
 
     // Room tile sprites
     FLOOR_1: { sheet: 'sheet_1', row: 30, col: 13 },    // Floor tile variant 1

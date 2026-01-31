@@ -3,16 +3,18 @@
 
 import { SPRITES } from './rendering/spriteDefinitions.js';
 
-export class Flag {
+export class BombDetector {
     /**
-     * Creates a new flag
+     * Creates a new bomb detector
      * @param {number} x - Grid x coordinate
      * @param {number} y - Grid y coordinate
+     * @param {boolean} isDanger - True if placed on a bomb tile
      */
-    constructor(x, y) {
+    constructor(x, y, isDanger) {
         this.x = x;
         this.y = y;
-        this.sprite = SPRITES.FLAG;
+        this.isDanger = isDanger;
+        this.sprite = isDanger ? SPRITES.BOMB_DETECTOR_DANGER : SPRITES.BOMB_DETECTOR_SAFE;
     }
 
     /**
@@ -24,9 +26,9 @@ export class Flag {
      * @param {number} offsetY - Y offset for rendering (in pixels)
      */
     render(ctx, renderer, cellSize, offsetX = 0, offsetY = 0) {
-        const pixelX = offsetX + this.x * cellSize;
-        const pixelY = offsetY + this.y * cellSize;
-        const scale = cellSize / 10; // Assuming 10x10 pixel sprites
+        const pixelX = offsetX + 2 + this.x * cellSize;
+        const pixelY = offsetY + 2 + this.y * cellSize;
+        const scale = cellSize / 12; // Assuming 10x10 pixel sprites
 
         renderer.drawSprite(ctx, this.sprite, pixelX, pixelY, scale);
     }

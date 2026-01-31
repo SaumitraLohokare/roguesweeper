@@ -48,6 +48,34 @@ export function initGame(canvas, ctx) {
 
     // Register the sprite sheet with the renderer
     gameState.spriteRenderer.registerSpriteSheet('sheet_1', gameState.spriteSheets.sheet_1);
+
+    registerClicks(canvas);
+
+
+}
+
+function registerClicks(canvas) {
+    canvas.addEventListener('click', (event) => {
+        const width = canvas.width;
+        const height = canvas.height;
+        let minSize = Math.min(height, width);
+
+        const middleX = (width - minSize) / 2;
+        const middleY = (height - minSize) / 2;
+
+        const roomPixelWidth = gameState.currentRoom.width * gameState.currentRoom.cellSize;
+        const roomPixelHeight = gameState.currentRoom.height * gameState.currentRoom.cellSize;
+
+        const offsetX = middleX + (minSize - roomPixelWidth) / 2;
+        const offsetY = middleY + (minSize - roomPixelHeight) / 2;
+
+        let mouseXPosition = event.clientX - offsetX;
+        let mouseYPosition = event.clientY - offsetY;
+
+        let mouseXPixel = Math.floor(mouseXPosition / gameState.currentRoom.cellSize);
+        let mouseYPixel = Math.floor(mouseYPosition / gameState.currentRoom.cellSize);
+        gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
+    });
 }
 
 function checkAllSheetsLoaded(canvas, ctx) {

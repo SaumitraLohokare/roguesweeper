@@ -8,6 +8,7 @@ import { Coin } from './Coin.js';
 import { BombDetector } from './BombDetector.js';
 import { HorizontalChaseStrategy, VerticalChaseStrategy } from './ai/EnemyBehaviors.js';
 import { Flag } from './Flag.js';
+import { getSoundManager } from './Sound.js';
 
 // Enum for sides of the room
 export const SIDE = {
@@ -1322,6 +1323,10 @@ export class Room {
 
         // Reveal the current tile
         this.revealCell(x, y);
+
+        if (wasHidden) {
+            getSoundManager().playReveal();
+        }
 
 
         const bombDetectorAt = this.getBombDetectorAt(x, y);

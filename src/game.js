@@ -28,7 +28,10 @@ let gameState = {
     player: null,
     gameOver: false,
     coins: 0,
-    roomNumber: 1
+    roomNumber: 1,
+    volume: 0.8,
+    isDraggingVolume: false,
+    volumeSlider: { x: 0, y: 0, w: 100, h: 20 } // Store slider layout for click detection
 };
 
 export function initGame(canvas, ctx) {
@@ -40,6 +43,9 @@ export function initGame(canvas, ctx) {
     // Initialize input
     gameState.input = new Input();
 
+    // Sync initial volume
+    getSoundManager().setMasterVolume(gameState.volume);
+
     // Load sprite sheet(s) - you can add more sheets here in the future
     gameState.spriteSheets.sheet_1 = new SpriteSheet('./assets/images/sheet_1.png', 10, 10, () => {
         console.log('sheet_1 loaded');
@@ -49,11 +55,73 @@ export function initGame(canvas, ctx) {
     // Register the sprite sheet with the renderer
     gameState.spriteRenderer.registerSpriteSheet('sheet_1', gameState.spriteSheets.sheet_1);
 
-    registerClicks(canvas);
+    registerInputs(canvas);
 }
 
-function registerClicks(canvas) {
+function registerInputs(canvas) {
+    // Helper to update volume from mouse position
+    const updateVolumeFromMouse = (clientX, clientY) => {
+        if (!gameState.volumeSlider) return;
+        const vs = gameState.volumeSlider;
+        // Check if within reasonable horizontal bounds specifically for the slider
+        // Just rely on X projection for the slider knob position
+        let newVol = (clientX - vs.x) / vs.w;
+        newVol = Math.max(0, Math.min(1, newVol));
+
+        gameState.volume = newVol;
+        getSoundManager().setMasterVolume(newVol);
+    };
+
+    canvas.addEventListener('mousedown', (event) => {
+        // Ensure audio context is resume and music is started on first interaction
+        getSoundManager().startMusic();
+
+        // Check if hitting volume slider
+        if (gameState.volumeSlider) {
+            const vs = gameState.volumeSlider;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 15; // Generous hit area
+
+            if (mx >= vs.x - padding && mx <= vs.x + vs.w + padding && my >= vs.y - padding && my <= vs.y + vs.h + padding) {
+                gameState.isDraggingVolume = true;
+                updateVolumeFromMouse(mx, my);
+                return;
+            }
+        }
+    });
+
+    window.addEventListener('mousemove', (event) => {
+        if (gameState.isDraggingVolume) {
+            updateVolumeFromMouse(event.clientX, event.clientY);
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        gameState.isDraggingVolume = false;
+    });
+
+    // Keep click for board interactions to prevent accidental flag placement while dragging
     canvas.addEventListener('click', (event) => {
+        // If we were just dragging (or mouseup happened), don't place flag? 
+        // Actually, if isDraggingVolume was just set to false in mouseup, we might need a way to know "did we drag"?
+        // But simpler: if the click is ON the slider, we ignore it (handled by mousedown/drag).
+        // If click is on board, we process it. 
+
+        // However, standard click logic might fire after mousedown/up.
+        // Let's check collision again.
+
+        if (gameState.volumeSlider) {
+            const vs = gameState.volumeSlider;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 15;
+
+            if (mx >= vs.x - padding && mx <= vs.x + vs.w + padding && my >= vs.y - padding && my <= vs.y + vs.h + padding) {
+                return; // Ignore click on slider (handled by drag)
+            }
+        }
+
         const width = canvas.width;
         const height = canvas.height;
         let minSize = Math.min(height, width);
@@ -72,6 +140,7 @@ function registerClicks(canvas) {
 
         let mouseXPixel = Math.floor(mouseXPosition / gameState.currentRoom.cellSize);
         let mouseYPixel = Math.floor(mouseYPosition / gameState.currentRoom.cellSize);
+
         gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
     });
 }
@@ -212,6 +281,7 @@ function update() {
             switch (playerEnterResultState) {
                 case PLAYER_MOVE_RESULT.REACHED_EXIT:
                     console.log("We have reached exit");
+                    getSoundManager().playWin();
                     startNextLevel();
                     break;
                 case PLAYER_MOVE_RESULT.NORMAL:
@@ -430,6 +500,40 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
     const startYPos = y;
     const sectionGap = 70;
     const labelGap = 47.5;
+
+    // --- Volume Slider (Absolute Top Right) ---
+    if (!calculateHeightOnly) {
+        const sliderWidth = 100;
+        const sliderHeight = 10;
+        const paddingRight = 20;
+        const paddingTop = 20;
+
+        // Absolute positioning relative to canvas
+        const sliderX = ctx.canvas.width - sliderWidth - paddingRight;
+        const sliderY = paddingTop;
+
+        // Update hit rect for click/drag handler
+        gameState.volumeSlider = { x: sliderX, y: sliderY, w: sliderWidth, h: sliderHeight };
+
+        // Draw track
+        ctx.fillStyle = '#444';
+        ctx.fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
+
+        // Draw fill
+        ctx.fillStyle = '#ffcc00';
+        const fillWidth = sliderWidth * gameState.volume;
+        ctx.fillRect(sliderX, sliderY, fillWidth, sliderHeight);
+
+        // Draw knob
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(sliderX + fillWidth - 2, sliderY - 2, 4, sliderHeight + 4);
+
+        // Label
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.fillStyle = '#888';
+        ctx.fillText('VOL', sliderX - 25, sliderY + 8);
+    }
+    // No y increment -> slider is out of flow
 
     // Title
     if (!calculateHeightOnly) {

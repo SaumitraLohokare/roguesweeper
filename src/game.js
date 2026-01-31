@@ -306,7 +306,6 @@ function loadTutorialLevel(index) {
 
 function startNextLevel() {
     // Increment level
-    gameState.roomNumber++;
     let currentTutorialIndex = getTutorialCompletedLevel();
 
     // Check if we're still in tutorial mode
@@ -328,6 +327,10 @@ function startNextLevel() {
             gameState.player.health = 3;
             gameState.player.bombCount = 3;
         }
+        // Room number stays at 1 for the first random room
+    } else {
+        // Already in random generation mode, continue as normal
+        gameState.roomNumber++;
     }
 
     // Already in random generation mode, or just finished last tutorial
@@ -853,7 +856,8 @@ function render(ctx) {
 
         // Draw Room Number (Top Center of Middle)
         ctx.textAlign = 'center';
-        ctx.fillText(`Room: ${gameState.roomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
+        const displayRoomNumber = gameState.currentTutorialIndex >= 0 ? 0 : gameState.roomNumber;
+        ctx.fillText(`Room: ${displayRoomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
 
         // Draw Equipped Item and Flag Count (Bottom Left of Middle)
         ctx.textAlign = 'left';

@@ -7,6 +7,18 @@ import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 
+const DIFFICULTY_TIERS = [
+    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, bombCount: 20, enemyCount: 5, innerWallDensity: 0.25 } },
+    { maxRoom: 5, config: { width: 20, height: 20, cellSize: 30, bombCount: 30, enemyCount: 10, innerWallDensity: 0.30 } },
+    { maxRoom: 9, config: { width: 25, height: 25, cellSize: 24, bombCount: 45, enemyCount: 15, innerWallDensity: 0.35 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, bombCount: 70, enemyCount: 20, innerWallDensity: 0.40 } }
+];
+
+function getRoomConfig(roomNumber) {
+    const tier = DIFFICULTY_TIERS.find(t => roomNumber <= t.maxRoom);
+    return tier ? tier.config : DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1].config;
+}
+
 let gameState = {
     running: false,
     spriteSheets: {},  // Store multiple sprite sheets by name
@@ -15,7 +27,8 @@ let gameState = {
     input: null,
     player: null,
     gameOver: false,
-    coins: 0
+    coins: 0,
+    roomNumber: 1
 };
 
 export function initGame(canvas, ctx) {
@@ -57,13 +70,19 @@ function startNewGame() {
     // Reset Game State
     gameState.gameOver = false;
     gameState.coins = 0;
+    gameState.roomNumber = 1;
 
     // Random entrance side
     const sides = [SIDE.TOP, SIDE.RIGHT, SIDE.BOTTOM, SIDE.LEFT];
     const randomEntranceSide = sides[Math.floor(Math.random() * sides.length)];
 
-    // Create a test room (20x20 cells, 30px per cell, random entrance, 25 bombs, 10 enemies, 5 coins)
-    gameState.currentRoom = new Room(20, 20, 30, randomEntranceSide, 25, 10, 5);
+    const config = getRoomConfig(gameState.roomNumber);
+
+    // Create a test room with config object
+    gameState.currentRoom = new Room({
+        ...config,
+        entranceSide: randomEntranceSide
+    });
 
     // Create player at entrance
     const entrance = gameState.currentRoom.entrancePos;
@@ -73,6 +92,32 @@ function startNewGame() {
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 
     console.log('Room created:', gameState.currentRoom);
+}
+
+function startNextLevel() {
+    // Get the exit side from the current room before replacing it
+    const previousExitSide = gameState.currentRoom.exitSide;
+    const newEntranceSide = Room.getOppositeSide(previousExitSide);
+
+    // Increment level
+    gameState.roomNumber++;
+
+    // Get config for new level
+    const config = getRoomConfig(gameState.roomNumber);
+
+    // Create new room
+    gameState.currentRoom = new Room({
+        ...config,
+        entranceSide: newEntranceSide
+    });
+
+    const entrance = gameState.currentRoom.entrancePos;
+
+    // Move player to new entrance
+    gameState.player.x = entrance.x;
+    gameState.player.y = entrance.y;
+
+    gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 }
 
 function gameLoop(canvas, ctx) {
@@ -89,22 +134,6 @@ function gameLoop(canvas, ctx) {
 
     // Continue loop
     requestAnimationFrame(() => gameLoop(canvas, ctx));
-}
-
-function startNextLevel() {
-    // Get the exit side from the current room before cleanup
-    const previousExitSide = gameState.currentRoom.exitSide;
-    const newEntranceSide = Room.getOppositeSide(previousExitSide);
-
-    gameState.currentRoom.cleanUp();
-
-    // Set the new entrance side before generating
-    gameState.currentRoom.entranceSide = newEntranceSide;
-
-    gameState.currentRoom.generate();
-    const entrance = gameState.currentRoom.entrancePos;
-    gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);
-    gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 }
 
 function update() {
@@ -548,6 +577,10 @@ function render(ctx) {
         // Draw Coins (Top Right of Middle)
         ctx.textAlign = 'right';
         ctx.fillText(`Coins: ${gameState.coins}`, middleX + middleSize - guiPadding, middleY + guiPadding);
+
+        // Draw Room Number (Top Center of Middle)
+        ctx.textAlign = 'center';
+        ctx.fillText(`Room: ${gameState.roomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
 
         // Draw Equipped Item and Flag Count (Bottom Left of Middle)
         ctx.textAlign = 'left';

@@ -7,11 +7,11 @@ export const EQUIPMENTS = {
 }
 
 export class Player {
-    constructor(x, y) {
+    constructor(x, y, initialHealth = 3) {
         this.x = x;
         this.y = y;
 
-        this.health = 3;
+        this.health = initialHealth;
 
         this.equippedItem = 'sword';  // 'sword' or 'bombDetector'
 

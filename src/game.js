@@ -8,10 +8,10 @@ import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, bombCount: 20, enemyCount: 5, innerWallDensity: 0.25 } },
-    { maxRoom: 5, config: { width: 20, height: 20, cellSize: 30, bombCount: 30, enemyCount: 10, innerWallDensity: 0.30 } },
-    { maxRoom: 9, config: { width: 25, height: 25, cellSize: 24, bombCount: 45, enemyCount: 15, innerWallDensity: 0.35 } },
-    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, bombCount: 70, enemyCount: 20, innerWallDensity: 0.40 } }
+    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 5, innerWallDensity: 0.15 } },
+    { maxRoom: 5, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
+    { maxRoom: 9, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
 ];
 
 function getRoomConfig(roomNumber) {
@@ -48,6 +48,32 @@ export function initGame(canvas, ctx) {
 
     // Register the sprite sheet with the renderer
     gameState.spriteRenderer.registerSpriteSheet('sheet_1', gameState.spriteSheets.sheet_1);
+
+    registerClicks(canvas);
+}
+
+function registerClicks(canvas) {
+    canvas.addEventListener('click', (event) => {
+        const width = canvas.width;
+        const height = canvas.height;
+        let minSize = Math.min(height, width);
+
+        const middleX = (width - minSize) / 2;
+        const middleY = (height - minSize) / 2;
+
+        const roomPixelWidth = gameState.currentRoom.width * gameState.currentRoom.cellSize;
+        const roomPixelHeight = gameState.currentRoom.height * gameState.currentRoom.cellSize;
+
+        const offsetX = middleX + (minSize - roomPixelWidth) / 2;
+        const offsetY = middleY + (minSize - roomPixelHeight) / 2;
+
+        let mouseXPosition = event.clientX - offsetX;
+        let mouseYPosition = event.clientY - offsetY;
+
+        let mouseXPixel = Math.floor(mouseXPosition / gameState.currentRoom.cellSize);
+        let mouseYPixel = Math.floor(mouseYPosition / gameState.currentRoom.cellSize);
+        gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
+    });
 }
 
 function checkAllSheetsLoaded(canvas, ctx) {
@@ -178,7 +204,6 @@ function update() {
 
     if (dx !== 0 || dy !== 0) {
         if (gameState.player.move(dx, dy, gameState.currentRoom)) {
-
             const playerEnterResultState = gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
             if (playerEnterResultState != PLAYER_MOVE_RESULT.INVALID) {
                 actionTaken = true;

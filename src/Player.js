@@ -4,7 +4,6 @@ import { getSoundManager } from './Sound.js';
 export const EQUIPMENTS = {
     SWORD: "SWORD",
     BOMB_DETECTOR: "BOMB_DETECTOR",
-    FLAG: "FLAG",
 }
 
 export class Player {

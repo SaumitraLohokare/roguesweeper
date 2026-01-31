@@ -6,9 +6,8 @@ const ctx = canvas.getContext('2d');
 
 // Set canvas size to maximum square that fits in viewport
 function resizeCanvas() {
-    const maxSize = Math.min(window.innerWidth, window.innerHeight) - 20; // 20px margin
-    canvas.width = maxSize;
-    canvas.height = maxSize;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     // Re-apply image smoothing setting after resize
     ctx.imageSmoothingEnabled = false;

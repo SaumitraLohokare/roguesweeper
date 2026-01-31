@@ -86,6 +86,15 @@ export class Room {
         this.generate();
     }
 
+    // Prep for next level
+    cleanUp() {
+        this.bombs = [];
+        this.enemies = [];
+        this.coins = [];
+        this.flags = [];
+        this.cellData = [];
+    }
+
     /**
      * Generates the room layout
      */

@@ -738,6 +738,10 @@ export class Room {
             return false;
         }
 
+        if (!this.isHidden(x, y)) {
+            return false;
+        }
+
         // Determine if there's a bomb at this position (for danger/safe sprite)
         const hasFlags = this.flags.some(f => f.x === x && f.y === y);
         if (hasFlags) {

@@ -21,3 +21,12 @@ window.addEventListener('resize', resizeCanvas);
 
 // Initialize and start the game
 initGame(canvas, ctx);
+
+// Handle Reset Tutorial Progress
+const resetBtn = document.getElementById('resetTutorialBtn');
+if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+        localStorage.removeItem('roguesweeper_tutorial_finished');
+        window.location.reload();
+    });
+}

@@ -20,3 +20,34 @@ body {
 #gameCanvas {
     background-color: #000;
 }
+
+.reset-btn {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    padding: 12px 18px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    color: #ffcc00;
+    background: rgba(40, 40, 40, 0.7);
+    border: 2px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease-in-out;
+    z-index: 100;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.reset-btn:hover {
+    background: rgba(60, 60, 60, 0.9);
+    border-color: #ffcc00;
+    color: #fff;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 12px rgba(255, 204, 0, 0.2);
+}
+
+.reset-btn:active {
+    transform: translateY(0) scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}

@@ -14,6 +14,60 @@ const DIFFICULTY_TIERS = [
     { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
 ];
 
+const TUTORIAL_COMPLETED_KEY = 'roguesweeper_tutorial_finished';
+
+function getTutorialCompletedLevel() {
+    return parseInt(localStorage.getItem(TUTORIAL_COMPLETED_KEY)) || 0;
+}
+
+function isTutorialFinished() {
+    return getTutorialCompletedLevel() == -1;
+}
+
+function setTutorialCompletedLevel(completedLevel) {
+    localStorage.setItem(TUTORIAL_COMPLETED_KEY, completedLevel);
+}
+
+// Tutorial levels - premade levels that play before random generation
+const TUTORIAL_LEVELS = [
+    {
+        width: 7,
+        height: 7,
+        cellSize: 40,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 3, y: 3 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+            { x: 5, y: 5 },
+        ]
+    },
+    {
+        width: 7,
+        height: 9,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [],
+        enemyPositions: [
+            { x: 3, y: 5, isVertical: true },
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+            { x: 1, y: 5 },
+            { x: 2, y: 5 },
+            { x: 4, y: 5 },
+            { x: 5, y: 5 },
+        ]
+    }
+];
+
 function getRoomConfig(roomNumber) {
     const tier = DIFFICULTY_TIERS.find(t => roomNumber <= t.maxRoom);
     return tier ? tier.config : DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1].config;
@@ -28,7 +82,8 @@ let gameState = {
     player: null,
     gameOver: false,
     coins: 0,
-    roomNumber: 1
+    roomNumber: 1,
+    currentTutorialIndex: 0  // Track tutorial progress: 0-based index, -1 means tutorials complete
 };
 
 export function initGame(canvas, ctx) {
@@ -98,50 +153,118 @@ function startNewGame() {
     gameState.coins = 0;
     gameState.roomNumber = 1;
 
-    // Random entrance side
-    const sides = [SIDE.TOP, SIDE.RIGHT, SIDE.BOTTOM, SIDE.LEFT];
-    const randomEntranceSide = sides[Math.floor(Math.random() * sides.length)];
+    if (isTutorialFinished()) {
+        console.log('Tutorial already completed, skipping to random rooms');
+        gameState.currentTutorialIndex = -1;
+        startRandomLevel(SIDE.TOP); // Initial room always enters from top
+    } else {
+        let currentTutorialIndex = getTutorialCompletedLevel();
+        gameState.currentTutorialIndex = currentTutorialIndex;  // Start from first tutorial
+        loadTutorialLevel(currentTutorialIndex);
+        console.log(`Tutorial level ${currentTutorialIndex} loaded`);
+    }
+}
 
-    const config = getRoomConfig(gameState.roomNumber);
+function loadTutorialLevel(index) {
+    if (index < 0 || index >= TUTORIAL_LEVELS.length) {
+        console.error(`Invalid tutorial index: ${index}`);
+        return;
+    }
 
-    // Create a test room with config object
+    const tutorialConfig = TUTORIAL_LEVELS[index];
+
+    // Create room with manual setup enabled
     gameState.currentRoom = new Room({
-        ...config,
-        entranceSide: randomEntranceSide
+        width: tutorialConfig.width,
+        height: tutorialConfig.height,
+        cellSize: tutorialConfig.cellSize,
+        entranceSide: tutorialConfig.entranceSide,
+        exitSide: tutorialConfig.exitSide,
+        exitPos: tutorialConfig.exitPos, // Optional
+        manualSetup: true  // Skip random generation
     });
+
+    // Place inner walls
+    tutorialConfig.innerWallPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceInnerWall(pos.x, pos.y);
+    });
+
+    // Place bombs
+    tutorialConfig.bombPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceBomb(pos.x, pos.y);
+    });
+
+    // Place enemies
+    tutorialConfig.enemyPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceEnemy(pos.x, pos.y, pos.isVertical);
+    });
+
+    // Place coins
+    tutorialConfig.coinPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceCoin(pos.x, pos.y);
+    });
+
+    // Calculate hints after all entities are placed
+    gameState.currentRoom.calculateHints();
 
     // Create player at entrance
     const entrance = gameState.currentRoom.entrancePos;
-    gameState.player = new Player(entrance.x, entrance.y);
+    gameState.player = new Player(entrance.x, entrance.y, 1);
 
     // Trigger initial room logic for player start position
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
-
-    console.log('Room created:', gameState.currentRoom);
 }
 
 function startNextLevel() {
-    // Get the exit side from the current room before replacing it
-    const previousExitSide = gameState.currentRoom.exitSide;
-    const newEntranceSide = Room.getOppositeSide(previousExitSide);
-
     // Increment level
     gameState.roomNumber++;
+    let currentTutorialIndex = getTutorialCompletedLevel();
 
+    // Check if we're still in tutorial mode
+    if (currentTutorialIndex >= 0) {
+        if (gameState.currentTutorialIndex < TUTORIAL_LEVELS.length - 1) {
+            // Load next tutorial level
+            gameState.currentTutorialIndex++;
+            setTutorialCompletedLevel(gameState.currentTutorialIndex);
+            loadTutorialLevel(gameState.currentTutorialIndex);
+            console.log(`Tutorial level ${gameState.currentTutorialIndex + 1} loaded`);
+            return;
+        }
+
+        // Last tutorial level finished
+        console.log('All tutorial levels completed!');
+        gameState.currentTutorialIndex = -1;
+        setTutorialCompletedLevel(-1);
+        if (gameState.player) {
+            gameState.player.health = 3;
+        }
+    }
+
+    // Already in random generation mode, or just finished last tutorial
+    const previousExitSide = gameState.currentRoom.exitSide;
+    const newEntranceSide = Room.getOppositeSide(previousExitSide);
+    startRandomLevel(newEntranceSide);
+}
+
+function startRandomLevel(entranceSide) {
     // Get config for new level
     const config = getRoomConfig(gameState.roomNumber);
 
     // Create new room
     gameState.currentRoom = new Room({
         ...config,
-        entranceSide: newEntranceSide
+        entranceSide: entranceSide
     });
 
     const entrance = gameState.currentRoom.entrancePos;
 
-    // Move player to new entrance
-    gameState.player.x = entrance.x;
-    gameState.player.y = entrance.y;
+    if (!gameState.player) {
+        gameState.player = new Player(entrance.x, entrance.y, 3);
+    } else {
+        // Move player to new entrance
+        gameState.player.x = entrance.x;
+        gameState.player.y = entrance.y;
+    }
 
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 }

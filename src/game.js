@@ -92,7 +92,15 @@ function gameLoop(canvas, ctx) {
 }
 
 function startNextLevel() {
+    // Get the exit side from the current room before cleanup
+    const previousExitSide = gameState.currentRoom.exitSide;
+    const newEntranceSide = Room.getOppositeSide(previousExitSide);
+
     gameState.currentRoom.cleanUp();
+
+    // Set the new entrance side before generating
+    gameState.currentRoom.entranceSide = newEntranceSide;
+
     gameState.currentRoom.generate();
     const entrance = gameState.currentRoom.entrancePos;
     gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);

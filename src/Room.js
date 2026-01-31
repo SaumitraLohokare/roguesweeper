@@ -53,9 +53,10 @@ export class Room {
         // Store which floor sprite variant to use for each cell (0-5 for 6 different sprites)
         this.floorVariants = [];
 
-        // Store entrance and exit positions
+        // Store entrance and exit positions and sides
         this.entrancePos = null;
         this.exitPos = null;
+        this.exitSide = null;
 
         // Store bombs
         this.bombs = [];
@@ -893,9 +894,25 @@ export class Room {
                 break;
         }
 
-        // Exit is a floor cell, just track its position
+        // Exit is a floor cell, just track its position and side
         this.grid[y][x] = 0; // Set to floor (overrides wall)
         this.exitPos = { x, y };
+        this.exitSide = exitSide;
+    }
+
+    /**
+     * Returns the opposite side of the given side
+     * @param {string} side - A SIDE enum value
+     * @returns {string} The opposite SIDE value
+     */
+    static getOppositeSide(side) {
+        switch (side) {
+            case SIDE.TOP: return SIDE.BOTTOM;
+            case SIDE.BOTTOM: return SIDE.TOP;
+            case SIDE.LEFT: return SIDE.RIGHT;
+            case SIDE.RIGHT: return SIDE.LEFT;
+            default: return side;
+        }
     }
 
     /**

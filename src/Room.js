@@ -167,7 +167,7 @@ export class Room {
             // Use a power function to bias toward edges (values near 0 and width/height)
             const biasToEdge = (val) => {
                 // Push toward 0 or 1 (edges)
-                return val < 0.5 ? val * val * 2 : 1 - (1 - val) * (1 - val) * 2;
+                return val < 0.5 ? val * val * 3 : 1 - (1 - val) * (1 - val) * 3;
             };
 
             const rx = biasToEdge(Math.random());

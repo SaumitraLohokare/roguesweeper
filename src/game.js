@@ -8,10 +8,10 @@ import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, bombCount: 20, enemyCount: 5, innerWallDensity: 0.25 } },
-    { maxRoom: 5, config: { width: 20, height: 20, cellSize: 30, bombCount: 30, enemyCount: 10, innerWallDensity: 0.30 } },
-    { maxRoom: 9, config: { width: 25, height: 25, cellSize: 24, bombCount: 45, enemyCount: 15, innerWallDensity: 0.35 } },
-    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, bombCount: 70, enemyCount: 20, innerWallDensity: 0.40 } }
+    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, coinCount: 3, bombCount: 20, enemyCount: 5, innerWallDensity: 0.25 } },
+    { maxRoom: 5, config: { width: 20, height: 20, cellSize: 30, coinCount: 6, bombCount: 30, enemyCount: 10, innerWallDensity: 0.30 } },
+    { maxRoom: 9, config: { width: 25, height: 25, cellSize: 24, coinCount: 8, bombCount: 45, enemyCount: 15, innerWallDensity: 0.35 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 70, enemyCount: 20, innerWallDensity: 0.40 } }
 ];
 
 function getRoomConfig(roomNumber) {

@@ -7,6 +7,18 @@ import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 
+const DIFFICULTY_TIERS = [
+    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, bombCount: 20, enemyCount: 5, innerWallDensity: 0.25 } },
+    { maxRoom: 5, config: { width: 20, height: 20, cellSize: 30, bombCount: 30, enemyCount: 10, innerWallDensity: 0.30 } },
+    { maxRoom: 9, config: { width: 25, height: 25, cellSize: 24, bombCount: 45, enemyCount: 15, innerWallDensity: 0.35 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, bombCount: 70, enemyCount: 20, innerWallDensity: 0.40 } }
+];
+
+function getRoomConfig(roomNumber) {
+    const tier = DIFFICULTY_TIERS.find(t => roomNumber <= t.maxRoom);
+    return tier ? tier.config : DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1].config;
+}
+
 let gameState = {
     running: false,
     spriteSheets: {},  // Store multiple sprite sheets by name
@@ -15,7 +27,8 @@ let gameState = {
     input: null,
     player: null,
     gameOver: false,
-    coins: 0
+    coins: 0,
+    roomNumber: 1
 };
 
 export function initGame(canvas, ctx) {
@@ -57,13 +70,19 @@ function startNewGame() {
     // Reset Game State
     gameState.gameOver = false;
     gameState.coins = 0;
+    gameState.roomNumber = 1;
 
     // Random entrance side
     const sides = [SIDE.TOP, SIDE.RIGHT, SIDE.BOTTOM, SIDE.LEFT];
     const randomEntranceSide = sides[Math.floor(Math.random() * sides.length)];
 
-    // Create a test room (20x20 cells, 30px per cell, random entrance, 25 bombs, 10 enemies, 5 coins)
-    gameState.currentRoom = new Room(20, 20, 30, randomEntranceSide, 25, 10, 5);
+    const config = getRoomConfig(gameState.roomNumber);
+
+    // Create a test room with config object
+    gameState.currentRoom = new Room({
+        ...config,
+        entranceSide: randomEntranceSide
+    });
 
     // Create player at entrance
     const entrance = gameState.currentRoom.entrancePos;
@@ -73,6 +92,32 @@ function startNewGame() {
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 
     console.log('Room created:', gameState.currentRoom);
+}
+
+function startNextLevel() {
+    // Get the exit side from the current room before replacing it
+    const previousExitSide = gameState.currentRoom.exitSide;
+    const newEntranceSide = Room.getOppositeSide(previousExitSide);
+
+    // Increment level
+    gameState.roomNumber++;
+
+    // Get config for new level
+    const config = getRoomConfig(gameState.roomNumber);
+
+    // Create new room
+    gameState.currentRoom = new Room({
+        ...config,
+        entranceSide: newEntranceSide
+    });
+
+    const entrance = gameState.currentRoom.entrancePos;
+
+    // Move player to new entrance
+    gameState.player.x = entrance.x;
+    gameState.player.y = entrance.y;
+
+    gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 }
 
 function gameLoop(canvas, ctx) {
@@ -89,22 +134,6 @@ function gameLoop(canvas, ctx) {
 
     // Continue loop
     requestAnimationFrame(() => gameLoop(canvas, ctx));
-}
-
-function startNextLevel() {
-    // Get the exit side from the current room before cleanup
-    const previousExitSide = gameState.currentRoom.exitSide;
-    const newEntranceSide = Room.getOppositeSide(previousExitSide);
-
-    gameState.currentRoom.cleanUp();
-
-    // Set the new entrance side before generating
-    gameState.currentRoom.entranceSide = newEntranceSide;
-
-    gameState.currentRoom.generate();
-    const entrance = gameState.currentRoom.entrancePos;
-    gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);
-    gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 }
 
 function update() {
@@ -126,14 +155,14 @@ function update() {
         gameState.player.toggleEquip();
     }
 
-    // --- Buy Flag (B key) ---
+    // --- Buy Bomb Detector (B key) ---
     if (gameState.input.isJustPressed('KeyB')) {
         if (gameState.coins >= 50) {
             gameState.coins -= 50;
-            gameState.player.addFlag();
-            console.log('Bought a flag! Flags: ' + gameState.player.flagCount);
+            gameState.player.addBombDetector();
+            console.log('Bought a bomb detector! Bomb Detectors: ' + gameState.player.bombDetectorCount);
         } else {
-            console.log('Not enough coins to buy a flag (need 50)');
+            console.log('Not enough coins to buy a bomb detector (need 50)');
         }
     }
 
@@ -178,7 +207,7 @@ function update() {
         }
     }
 
-    // --- Arrow Key Controls (Attack or Place Flag based on equipped item) ---
+    // --- Arrow Key Controls (Attack or Place Bomb Detector based on equipped item) ---
     if (!actionTaken) {
         let arrowDx = 0;
         let arrowDy = 0;
@@ -192,24 +221,24 @@ function update() {
             const targetX = gameState.player.x + arrowDx;
             const targetY = gameState.player.y + arrowDy;
 
-            if (gameState.player.equippedItem === 'flag') {
-                // --- Flag Placement ---
+            if (gameState.player.equippedItem === 'bombDetector') {
+                // --- Bomb Detector Placement ---
                 // Check if target tile is hidden
                 if (gameState.currentRoom.isHidden(targetX, targetY)) {
-                    // Try to use a flag
-                    if (gameState.player.useFlag()) {
-                        // Place the flag
-                        if (gameState.currentRoom.placeFlag(targetX, targetY)) {
+                    // Try to use a bomb detector
+                    if (gameState.player.useBombDetector()) {
+                        // Place the bomb detector
+                        if (gameState.currentRoom.placeBombDetector(targetX, targetY)) {
                             actionTaken = true;
                         } else {
-                            // Failed to place, refund the flag
-                            gameState.player.addFlag();
+                            // Failed to place, refund the bomb detector
+                            gameState.player.addBombDetector();
                         }
                     } else {
-                        console.log('No flags available!');
+                        console.log('No bomb detectors available!');
                     }
                 } else {
-                    console.log('Can only place flags on hidden tiles');
+                    console.log('Can only place bomb detectors on hidden tiles');
                 }
             } else {
                 // --- Attack (sword equipped) ---
@@ -351,7 +380,7 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
         "",
         "Tiles are MASKED",
         "until you step",
-        "or flag them.",
+        "or mark them.",
         "",
         "Watch the hints.",
         "Survive."
@@ -416,7 +445,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('ACT / FLAG', centerX, y + 35 + labelGap);
+        ctx.fillText('ACT / MARK', centerX, y + 35 + labelGap);
     }
     y += 35 + 35 + labelGap; // Up row + Down row + Label gap
 
@@ -549,18 +578,22 @@ function render(ctx) {
         ctx.textAlign = 'right';
         ctx.fillText(`Coins: ${gameState.coins}`, middleX + middleSize - guiPadding, middleY + guiPadding);
 
+        // Draw Room Number (Top Center of Middle)
+        ctx.textAlign = 'center';
+        ctx.fillText(`Room: ${gameState.roomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
+
         // Draw Equipped Item and Flag Count (Bottom Left of Middle)
         ctx.textAlign = 'left';
         ctx.font = '14px "Press Start 2P", monospace';
 
         const swordIndicator = gameState.player.equippedItem === 'sword' ? '> ' : '  ';
-        const flagIndicator = gameState.player.equippedItem === 'flag' ? '> ' : '  ';
+        const bombDetectorIndicator = gameState.player.equippedItem === 'bombDetector' ? '> ' : '  ';
 
         ctx.fillStyle = gameState.player.equippedItem === 'sword' ? '#ffcc00' : '#888888';
         ctx.fillText(`${swordIndicator}Sword`, middleX + guiPadding, middleY + middleSize - 60);
 
-        ctx.fillStyle = gameState.player.equippedItem === 'flag' ? '#ffcc00' : '#888888';
-        ctx.fillText(`${flagIndicator}Flag x${gameState.player.flagCount}`, middleX + guiPadding, middleY + middleSize - 35);
+        ctx.fillStyle = gameState.player.equippedItem === 'bombDetector' ? '#ffcc00' : '#888888';
+        ctx.fillText(`${bombDetectorIndicator}Detector x${gameState.player.bombDetectorCount}`, middleX + guiPadding, middleY + middleSize - 35);
 
         ctx.shadowBlur = 0; // Reset
     }

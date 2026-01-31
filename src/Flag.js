@@ -1,11 +1,11 @@
-// Flag entity class
-// Represents a flag placed on a hidden tile to mark it as dangerous or safe
+// Bomb Detector entity class
+// Represents a bomb detector placed on a hidden tile to mark it as dangerous or safe
 
 import { SPRITES } from './rendering/spriteDefinitions.js';
 
 export class Flag {
     /**
-     * Creates a new flag
+     * Creates a new bomb detector
      * @param {number} x - Grid x coordinate
      * @param {number} y - Grid y coordinate
      * @param {boolean} isDanger - True if placed on a bomb tile
@@ -18,7 +18,7 @@ export class Flag {
     }
 
     /**
-     * Renders the flag to the canvas
+     * Renders the bomb detector to the canvas
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {SpriteRenderer} renderer - Sprite renderer instance
      * @param {number} cellSize - Size of each cell in pixels

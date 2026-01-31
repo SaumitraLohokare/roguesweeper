@@ -2,9 +2,10 @@
 
 import { SpriteSheet } from './rendering/SpriteSheet.js';
 import { SpriteRenderer } from './rendering/SpriteRenderer.js';
-import { Room, SIDE } from './Room.js';
+import { PLAYER_MOVE_RESULT, Room, SIDE } from './Room.js';
 import { Input } from './Input.js';
 import { Player } from './Player.js';
+import { getSoundManager } from './Sound.js';
 
 let gameState = {
     running: false,
@@ -14,7 +15,7 @@ let gameState = {
     input: null,
     player: null,
     gameOver: false,
-    score: 0
+    coins: 0
 };
 
 export function initGame(canvas, ctx) {
@@ -55,7 +56,7 @@ function startNewGame() {
 
     // Reset Game State
     gameState.gameOver = false;
-    gameState.score = 0;
+    gameState.coins = 0;
 
     // Random entrance side
     const sides = [SIDE.TOP, SIDE.RIGHT, SIDE.BOTTOM, SIDE.LEFT];
@@ -90,6 +91,22 @@ function gameLoop(canvas, ctx) {
     requestAnimationFrame(() => gameLoop(canvas, ctx));
 }
 
+function startNextLevel() {
+    // Get the exit side from the current room before cleanup
+    const previousExitSide = gameState.currentRoom.exitSide;
+    const newEntranceSide = Room.getOppositeSide(previousExitSide);
+
+    gameState.currentRoom.cleanUp();
+
+    // Set the new entrance side before generating
+    gameState.currentRoom.entranceSide = newEntranceSide;
+
+    gameState.currentRoom.generate();
+    const entrance = gameState.currentRoom.entrancePos;
+    gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);
+    gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
+}
+
 function update() {
     if (!gameState.player || !gameState.input) return;
 
@@ -111,8 +128,8 @@ function update() {
 
     // --- Buy Flag (B key) ---
     if (gameState.input.isJustPressed('KeyB')) {
-        if (gameState.score >= 50) {
-            gameState.score -= 50;
+        if (gameState.coins >= 50) {
+            gameState.coins -= 50;
             gameState.player.addFlag();
             console.log('Bought a flag! Flags: ' + gameState.player.flagCount);
         } else {
@@ -132,38 +149,32 @@ function update() {
 
     if (dx !== 0 || dy !== 0) {
         if (gameState.player.move(dx, dy, gameState.currentRoom)) {
-            // If move was successful, trigger room events
-            gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 
-            // Check for flag pickup at the new position
-            const flagAt = gameState.currentRoom.getFlagAt(gameState.player.x, gameState.player.y);
-            if (flagAt) {
-                gameState.currentRoom.removeFlag(gameState.player.x, gameState.player.y);
-                // gameState.player.addFlag();
-                console.log('Picked up flag! Flags: ' + gameState.player.flagCount);
+            const playerEnterResultState = gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
+            if (playerEnterResultState != PLAYER_MOVE_RESULT.INVALID) {
+                actionTaken = true;
             }
 
-            // Check for entities at the new position
-            const entityObj = gameState.currentRoom.getEntityAt(gameState.player.x, gameState.player.y);
-
-            if (entityObj) {
-                if (entityObj.type === 'bomb' || entityObj.type === 'enemy') {
-                    // Take damage
+            switch (playerEnterResultState) {
+                case PLAYER_MOVE_RESULT.REACHED_EXIT:
+                    console.log("We have reached exit");
+                    startNextLevel();
+                    break;
+                case PLAYER_MOVE_RESULT.NORMAL:
+                    getSoundManager().playMove();
+                    break;
+                case PLAYER_MOVE_RESULT.COIN:
+                    getSoundManager().playCoin();
+                    gameState.coins += 10;
+                    break;
+                case PLAYER_MOVE_RESULT.ENEMY:
+                case PLAYER_MOVE_RESULT.BOMB:
                     const remainingHealth = gameState.player.takeDamage(1);
-                    console.log(`Hit ${entityObj.type}! Health: ${remainingHealth}`);
+                    console.log(`Hit! Health: ${remainingHealth}`);
+                    break;
 
-                    // Remove the entity
-                    gameState.currentRoom.removeEntity(entityObj);
-                } else if (entityObj.type === 'coin') {
-                    // Collect coin
-                    gameState.score += 10;
-                    console.log(`Collected Coin! Score: ${gameState.score}`);
-
-                    // Remove the entity
-                    gameState.currentRoom.removeEntity(entityObj);
-                }
             }
-            actionTaken = true;
+
         }
     }
 
@@ -219,6 +230,7 @@ function update() {
         // --- Game State Check ---
         if (gameState.player.health <= 0) {
             gameState.gameOver = true;
+            getSoundManager().playLose();
             console.log("Game Over!");
         }
     }
@@ -261,9 +273,9 @@ function render(ctx) {
         // Draw Health
         ctx.fillText(`Health: ${gameState.player.health}`, 20, 20);
 
-        // Draw Score
+        // Draw Coins
         ctx.textAlign = 'right';
-        ctx.fillText(`Score: ${gameState.score}`, ctx.canvas.width - 20, 20);
+        ctx.fillText(`Coins: ${gameState.coins}`, ctx.canvas.width - 20, 20);
 
         // Draw Equipped Item and Flag Count (bottom left)
         ctx.textAlign = 'left';

@@ -1,12 +1,17 @@
 import { SPRITES } from './rendering/spriteDefinitions.js';
+import { getSoundManager } from './Sound.js';
 
 export class Player {
     constructor(x, y) {
         this.x = x;
         this.y = y;
+
         this.health = 3;
+
         this.equippedItem = 'sword';  // 'sword' or 'flag'
         this.flagCount = 3;  // Start with 3 flags
+
+        this.isDamageFlashing = false  // Track damage flash effect
     }
 
     /**
@@ -43,6 +48,14 @@ export class Player {
      */
     takeDamage(amount) {
         this.health -= amount;
+        getSoundManager().playDamage();
+
+        // Trigger red flash effect
+        this.isDamageFlashing = true;
+        setTimeout(() => {
+            this.isDamageFlashing = false;
+        }, 250); // Flash for 0.5 seconds
+
         return this.health;
     }
 
@@ -57,6 +70,23 @@ export class Player {
         const newX = this.x + dx;
         const newY = this.y + dy;
 
+        if (room.isValidMove(newX, newY)) {
+            this.x = newX;
+            this.y = newY;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Attempts to move the player
+     * @param {number} dx - Change in x (-1, 0, 1)
+     * @param {number} dy - Change in y (-1, 0, 1)
+     * @param {Room} room - The current room to check collisions against
+     * @returns {boolean} - True if moved, false if blocked
+     */
+    setPlayerPosition(newX, newY, room) {
         if (room.isValidMove(newX, newY)) {
             this.x = newX;
             this.y = newY;
@@ -89,16 +119,9 @@ export class Player {
                 room.removeEntity(entityObj);
                 console.log("Enemy defeated!");
             }
-            return true; // Performed an attack action
-        } else {
-            console.log("Attack missed!");
-            // return true; // Missed attack still consumes turn? Yes, usually.
-            // But wait, if player just hits arrow key at wall, does it waste turn?
-            // "the attack is done in the chosen direction's adjacent tile". 
-            // "If the enemy dies on the player's turn... verify [it]... does not get a chance to play a turn".
-            // I will assume attacking always consumes a turn, akin to bumping into a wall in some roguelikes, or at least swinging weapon.
-            return true;
         }
+        getSoundManager().playAttack();
+        return true;
     }
 
     /**
@@ -114,6 +137,23 @@ export class Player {
         const pixelY = offsetY + this.y * cellSize;
         const scale = cellSize / 10; // Assuming 10x10 sprites
 
+        // Apply red flash effect if taking damage
+        if (this.isDamageFlashing) {
+            ctx.save();
+
+            // Draw the sprite normally first
+            renderer.drawSprite(ctx, SPRITES.PLAYER, pixelX, pixelY, scale);
+
+            // Apply red tint overlay only to the sprite pixels
+            // Using 'multiply' blend mode to tint only visible pixels
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.fillStyle = 'rgb(255, 100, 100)'; // Light red tint
+            ctx.fillRect(pixelX, pixelY, cellSize, cellSize);
+
+
+            ctx.restore();
+            return;
+        }
         renderer.drawSprite(ctx, SPRITES.PLAYER, pixelX, pixelY, scale);
     }
 }

@@ -1,6 +1,11 @@
 import { SPRITES } from './rendering/spriteDefinitions.js';
 import { getSoundManager } from './Sound.js';
 
+export const EQUIPMENTS = {
+    SWORD: "SWORD",
+    BOMB_DETECTOR: "BOMB_DETECTOR",
+}
+
 export class Player {
     constructor(x, y) {
         this.x = x;
@@ -8,37 +13,38 @@ export class Player {
 
         this.health = 3;
 
-        this.equippedItem = 'sword';  // 'sword' or 'flag'
-        this.flagCount = 3;  // Start with 3 flags
+        this.equippedItem = 'sword';  // 'sword' or 'bombDetector'
+
+        this.bombDetectorCount = 3;  // Start with 3 bomb detectors
 
         this.isDamageFlashing = false  // Track damage flash effect
     }
 
     /**
-     * Toggles between sword and flag equipment
+     * Toggles between sword and bomb detector equipment
      */
     toggleEquip() {
-        this.equippedItem = this.equippedItem === 'sword' ? 'flag' : 'sword';
+        this.equippedItem = this.equippedItem === 'sword' ? 'bombDetector' : 'sword';
         console.log(`Equipped: ${this.equippedItem}`);
     }
 
     /**
-     * Uses a flag (decrements count)
-     * @returns {boolean} True if flag was used, false if none available
+     * Uses a bomb detector (decrements count)
+     * @returns {boolean} True if bomb detector was used, false if none available
      */
-    useFlag() {
-        if (this.flagCount > 0) {
-            this.flagCount--;
+    useBombDetector() {
+        if (this.bombDetectorCount > 0) {
+            this.bombDetectorCount--;
             return true;
         }
         return false;
     }
 
     /**
-     * Adds a flag to inventory
+     * Adds a bomb detector to inventory
      */
-    addFlag() {
-        this.flagCount++;
+    addBombDetector() {
+        this.bombDetectorCount++;
     }
 
     /**

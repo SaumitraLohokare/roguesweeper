@@ -67,8 +67,8 @@ export class Room {
         // Store coins
         this.coins = [];
 
-        // Store flags placed by player
-        this.flags = [];
+        // Store bomb detectors placed by player
+        this.bombDetectors = [];
 
         // Store cell data for hints
         this.cellData = [];
@@ -82,7 +82,7 @@ export class Room {
         this.bombs = [];
         this.enemies = [];
         this.coins = [];
-        this.flags = [];
+        this.bombDetectors = [];
         this.cellData = [];
     }
 
@@ -601,7 +601,7 @@ export class Room {
     }
 
     /**
-     * Calculates hint numbers and neighbor flags for all cells
+     * Calculates hint numbers and neighbor bomb detectors for all cells
      */
     calculateHints() {
         // Reset hints (keep hidden state)
@@ -717,26 +717,26 @@ export class Room {
     }
 
     /**
-     * Places a flag on a hidden tile
+     * Places a bomb detector on a hidden tile
      * @param {number} x - Grid x coordinate
      * @param {number} y - Grid y coordinate
-     * @returns {boolean} True if flag was placed successfully
+     * @returns {boolean} True if bomb detector was placed successfully
      */
-    placeFlag(x, y) {
+    placeBombDetector(x, y) {
         // Check bounds
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
             return false;
         }
 
-        // Check if tile is hidden (can only place flags on hidden tiles)
+        // Check if tile is hidden (can only place bomb detectors on hidden tiles)
         if (!this.isHidden(x, y)) {
-            console.log('Cannot place flag on revealed tile');
+            console.log('Cannot place bomb detector on revealed tile');
             return false;
         }
 
-        // Check if there's already a flag here
-        if (this.getFlagAt(x, y)) {
-            console.log('Flag already placed here');
+        // Check if there's already a bomb detector here
+        if (this.getBombDetectorAt(x, y)) {
+            console.log('Bomb detector already placed here');
             return false;
         }
 
@@ -748,37 +748,37 @@ export class Room {
         // Determine if there's a bomb at this position (for danger/safe sprite)
         const hasBomb = this.bombs.some(b => b.x === x && b.y === y);
 
-        // Create and add the flag
-        const flag = new Flag(x, y, hasBomb);
-        this.flags.push(flag);
+        // Create and add the bomb detector
+        const bombDetector = new Flag(x, y, hasBomb);
+        this.bombDetectors.push(bombDetector);
 
-        console.log(`Flag placed at (${x}, ${y}) - ${hasBomb ? 'DANGER' : 'SAFE'}`);
+        console.log(`Bomb detector placed at (${x}, ${y}) - ${hasBomb ? 'DANGER' : 'SAFE'}`);
         return true;
     }
 
     /**
-     * Gets the flag at a specific position
+     * Gets the bomb detector at a specific position
      * @param {number} x
      * @param {number} y
      * @returns {Flag|null}
      */
-    getFlagAt(x, y) {
-        return this.flags.find(f => f.x === x && f.y === y) || null;
+    getBombDetectorAt(x, y) {
+        return this.bombDetectors.find(f => f.x === x && f.y === y) || null;
     }
 
     /**
-     * Removes a flag at the given position and returns it
+     * Removes a bomb detector at the given position and returns it
      * @param {number} x
      * @param {number} y
-     * @returns {Flag|null} The removed flag, or null if none found
+     * @returns {Flag|null} The removed bomb detector, or null if none found
      */
-    removeFlag(x, y) {
-        const index = this.flags.findIndex(f => f.x === x && f.y === y);
+    removeBombDetector(x, y) {
+        const index = this.bombDetectors.findIndex(f => f.x === x && f.y === y);
         if (index > -1) {
-            const flag = this.flags[index];
-            this.flags.splice(index, 1);
-            console.log(`Flag picked up at (${x}, ${y})`);
-            return flag;
+            const bombDetector = this.bombDetectors[index];
+            this.bombDetectors.splice(index, 1);
+            console.log(`Bomb detector picked up at (${x}, ${y})`);
+            return bombDetector;
         }
         return null;
     }
@@ -1087,9 +1087,9 @@ export class Room {
             }
         });
 
-        // Render flags (on hidden tiles - always render)
-        this.flags.forEach(flag => {
-            flag.render(ctx, renderer, this.cellSize, offsetX, offsetY);
+        // Render bomb detectors (on hidden tiles - always render)
+        this.bombDetectors.forEach(bombDetector => {
+            bombDetector.render(ctx, renderer, this.cellSize, offsetX, offsetY);
         });
 
         // Render entrance/exit direction arrows
@@ -1255,10 +1255,10 @@ export class Room {
         this.revealCell(x, y);
 
 
-        const flagAt = this.getFlagAt(x, y);
-        if (flagAt) {
-            this.removeFlag(x, y);
-            console.log('Picked up flag!');
+        const bombDetectorAt = this.getBombDetectorAt(x, y);
+        if (bombDetectorAt) {
+            this.removeBombDetector(x, y);
+            console.log('Picked up bomb detector!');
         }
 
         const isEntrance = this.entrancePos && x === this.entrancePos.x && y === this.entrancePos.y;

@@ -126,14 +126,14 @@ function update() {
         gameState.player.toggleEquip();
     }
 
-    // --- Buy Flag (B key) ---
+    // --- Buy Bomb Detector (B key) ---
     if (gameState.input.isJustPressed('KeyB')) {
         if (gameState.coins >= 50) {
             gameState.coins -= 50;
-            gameState.player.addFlag();
-            console.log('Bought a flag! Flags: ' + gameState.player.flagCount);
+            gameState.player.addBombDetector();
+            console.log('Bought a bomb detector! Bomb Detectors: ' + gameState.player.bombDetectorCount);
         } else {
-            console.log('Not enough coins to buy a flag (need 50)');
+            console.log('Not enough coins to buy a bomb detector (need 50)');
         }
     }
 
@@ -178,7 +178,7 @@ function update() {
         }
     }
 
-    // --- Arrow Key Controls (Attack or Place Flag based on equipped item) ---
+    // --- Arrow Key Controls (Attack or Place Bomb Detector based on equipped item) ---
     if (!actionTaken) {
         let arrowDx = 0;
         let arrowDy = 0;
@@ -192,24 +192,24 @@ function update() {
             const targetX = gameState.player.x + arrowDx;
             const targetY = gameState.player.y + arrowDy;
 
-            if (gameState.player.equippedItem === 'flag') {
-                // --- Flag Placement ---
+            if (gameState.player.equippedItem === 'bombDetector') {
+                // --- Bomb Detector Placement ---
                 // Check if target tile is hidden
                 if (gameState.currentRoom.isHidden(targetX, targetY)) {
-                    // Try to use a flag
-                    if (gameState.player.useFlag()) {
-                        // Place the flag
-                        if (gameState.currentRoom.placeFlag(targetX, targetY)) {
+                    // Try to use a bomb detector
+                    if (gameState.player.useBombDetector()) {
+                        // Place the bomb detector
+                        if (gameState.currentRoom.placeBombDetector(targetX, targetY)) {
                             actionTaken = true;
                         } else {
-                            // Failed to place, refund the flag
-                            gameState.player.addFlag();
+                            // Failed to place, refund the bomb detector
+                            gameState.player.addBombDetector();
                         }
                     } else {
-                        console.log('No flags available!');
+                        console.log('No bomb detectors available!');
                     }
                 } else {
-                    console.log('Can only place flags on hidden tiles');
+                    console.log('Can only place bomb detectors on hidden tiles');
                 }
             } else {
                 // --- Attack (sword equipped) ---
@@ -351,7 +351,7 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
         "",
         "Tiles are MASKED",
         "until you step",
-        "or flag them.",
+        "or mark them.",
         "",
         "Watch the hints.",
         "Survive."
@@ -416,7 +416,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('ACT / FLAG', centerX, y + 35 + labelGap);
+        ctx.fillText('ACT / MARK', centerX, y + 35 + labelGap);
     }
     y += 35 + 35 + labelGap; // Up row + Down row + Label gap
 
@@ -549,18 +549,18 @@ function render(ctx) {
         ctx.textAlign = 'right';
         ctx.fillText(`Coins: ${gameState.coins}`, middleX + middleSize - guiPadding, middleY + guiPadding);
 
-        // Draw Equipped Item and Flag Count (Bottom Left of Middle)
+        // Draw Equipped Item and Bomb Detector Count (Bottom Left of Middle)
         ctx.textAlign = 'left';
         ctx.font = '14px "Press Start 2P", monospace';
 
         const swordIndicator = gameState.player.equippedItem === 'sword' ? '> ' : '  ';
-        const flagIndicator = gameState.player.equippedItem === 'flag' ? '> ' : '  ';
+        const bombDetectorIndicator = gameState.player.equippedItem === 'bombDetector' ? '> ' : '  ';
 
         ctx.fillStyle = gameState.player.equippedItem === 'sword' ? '#ffcc00' : '#888888';
         ctx.fillText(`${swordIndicator}Sword`, middleX + guiPadding, middleY + middleSize - 60);
 
-        ctx.fillStyle = gameState.player.equippedItem === 'flag' ? '#ffcc00' : '#888888';
-        ctx.fillText(`${flagIndicator}Flag x${gameState.player.flagCount}`, middleX + guiPadding, middleY + middleSize - 35);
+        ctx.fillStyle = gameState.player.equippedItem === 'bombDetector' ? '#ffcc00' : '#888888';
+        ctx.fillText(`${bombDetectorIndicator}Detector x${gameState.player.bombDetectorCount}`, middleX + guiPadding, middleY + middleSize - 35);
 
         ctx.shadowBlur = 0; // Reset
     }

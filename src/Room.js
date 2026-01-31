@@ -29,22 +29,31 @@ export const PLAYER_MOVE_RESULT = {
 export class Room {
     /**
      * Creates a new room
-     * @param {number} width - Width of the room in cells
-     * @param {number} height - Height of the room in cells
-     * @param {number} cellSize - Size of each cell in pixels (scale of sprite)
-     * @param {string} entranceSide - Side where entrance is located (use SIDE enum)
-     * @param {number} bombCount - Number of bombs to generate in the room
-     * @param {number} enemyCount - Number of enemies to generate in the room
-     * @param {number} coinCount - Number of coins to generate in the room
+     * @param {Object} config - Configuration object for room generation
      */
-    constructor(width, height, cellSize, entranceSide, bombCount = 0, enemyCount = 0, coinCount = 0) {
-        this.width = width;
-        this.height = height;
-        this.cellSize = cellSize;
-        this.entranceSide = entranceSide;
-        this.bombCount = bombCount;
-        this.enemyCount = enemyCount;
-        this.coinCount = coinCount;
+    constructor(config) {
+        this.config = {
+            width: 20,
+            height: 20,
+            cellSize: 30,
+            entranceSide: SIDE.TOP,
+            bombCount: 0,
+            enemyCount: 0,
+            coinCount: 0,
+            innerWallDensity: 0.3,
+            wallChunkAttempts: 20,
+            minChunkSize: 2,
+            maxChunkSizeBase: 8,
+            ...config
+        };
+
+        this.width = this.config.width;
+        this.height = this.config.height;
+        this.cellSize = this.config.cellSize;
+        this.entranceSide = this.config.entranceSide;
+        this.bombCount = this.config.bombCount;
+        this.enemyCount = this.config.enemyCount;
+        this.coinCount = this.config.coinCount;
 
         // Initialize the grid (0 = floor/empty cell, 1 = wall)
         // Entrance and exit are treated as floor cells, tracked separately
@@ -75,15 +84,6 @@ export class Room {
 
         // Generate the room
         this.generate();
-    }
-
-    // Prep for next level
-    cleanUp() {
-        this.bombs = [];
-        this.enemies = [];
-        this.coins = [];
-        this.bombDetectors = [];
-        this.cellData = [];
     }
 
     /**
@@ -144,15 +144,15 @@ export class Room {
      */
     generateInnerWalls() {
         // Configuration
-        const wallPercentage = Math.random() * 0.15 + 0.25;
+        const wallPercentage = this.config.innerWallDensity;
         const targetWallCells = Math.floor((this.width - 2) * (this.height - 2) * wallPercentage);
 
         let currentWallCells = 0;
-        const attempts = 20; // Try to place chunks N times
+        const attempts = this.config.wallChunkAttempts; // Try to place chunks N times
 
         // Size constraints
-        const minChunkSize = 2;
-        const maxChunkSizeBase = 8;
+        const minChunkSize = this.config.minChunkSize;
+        const maxChunkSizeBase = this.config.maxChunkSizeBase;
 
         for (let i = 0; i < attempts; i++) {
             if (currentWallCells >= targetWallCells) break;

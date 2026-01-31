@@ -163,6 +163,8 @@ function startNewGame() {
         loadTutorialLevel(currentTutorialIndex);
         console.log(`Tutorial level ${currentTutorialIndex} loaded`);
     }
+
+    gameState.player.health = 3;
 }
 
 function loadTutorialLevel(index) {

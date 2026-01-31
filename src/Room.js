@@ -38,6 +38,8 @@ export class Room {
             height: 20,
             cellSize: 30,
             entranceSide: SIDE.TOP,
+            exitSide: null,
+            exitPos: null,
             bombCount: 0,
             enemyCount: 0,
             coinCount: 0,
@@ -127,20 +129,30 @@ export class Room {
         // Place exit (on a different side, avoiding the same half)
         this.placeExit();
 
-        // Generate Inner Walls (Chunks)
-        this.generateInnerWalls();
+        // Generate Inner Walls (Chunks) - skip if manual setup
+        if (!this.config.manualSetup) {
+            this.generateInnerWalls();
+        }
 
-        // Generate bombs
-        this.generateBombs();
+        // Generate bombs - skip if manual setup
+        if (!this.config.manualSetup) {
+            this.generateBombs();
+        }
 
-        // Generate enemies
-        this.generateEnemies();
+        // Generate enemies - skip if manual setup
+        if (!this.config.manualSetup) {
+            this.generateEnemies();
+        }
 
-        // Generate coins
-        this.generateCoins();
+        // Generate coins - skip if manual setup
+        if (!this.config.manualSetup) {
+            this.generateCoins();
+        }
 
-        // Calculate hints
-        this.calculateHints();
+        // Calculate hints (always needed, even for manual setup)
+        if (!this.config.manualSetup) {
+            this.calculateHints();
+        }
     }
 
     /**
@@ -641,6 +653,130 @@ export class Room {
     }
 
     /**
+     * Manual placement methods for tutorial levels
+     */
+
+    /**
+     * Manually places a bomb at specific coordinates
+     * @param {number} x - Grid x coordinate
+     * @param {number} y - Grid y coordinate
+     * @returns {boolean} True if bomb was placed successfully
+     */
+    manualPlaceBomb(x, y) {
+        // Check bounds
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            console.warn(`Cannot place bomb at (${x}, ${y}) - out of bounds`);
+            return false;
+        }
+
+        // Check if it's a floor cell
+        if (this.grid[y][x] !== 0) {
+            console.warn(`Cannot place bomb at (${x}, ${y}) - not a floor cell`);
+            return false;
+        }
+
+        // Check if there's already an entity here
+        if (this.hasEntityAt(x, y)) {
+            console.warn(`Cannot place bomb at (${x}, ${y}) - entity already exists`);
+            return false;
+        }
+
+        this.bombs.push(new Bomb(x, y));
+        return true;
+    }
+
+    /**
+     * Manually places an enemy at specific coordinates
+     * @param {number} x - Grid x coordinate
+     * @param {number} y - Grid y coordinate
+     * @param {boolean} isVertical - Whether to use vertical chase behavior (default: random)
+     * @returns {boolean} True if enemy was placed successfully
+     */
+    manualPlaceEnemy(x, y, isVertical = null) {
+        // Check bounds
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            console.warn(`Cannot place enemy at (${x}, ${y}) - out of bounds`);
+            return false;
+        }
+
+        // Check if it's a floor cell
+        if (this.grid[y][x] !== 0) {
+            console.warn(`Cannot place enemy at (${x}, ${y}) - not a floor cell`);
+            return false;
+        }
+
+        // Check if there's already an entity here
+        if (this.hasEntityAt(x, y)) {
+            console.warn(`Cannot place enemy at (${x}, ${y}) - entity already exists`);
+            return false;
+        }
+
+        // Randomly select strategy if not specified
+        if (isVertical === null) {
+            isVertical = Math.random() < 0.5;
+        }
+
+        const behavior = isVertical ? new VerticalChaseStrategy() : new HorizontalChaseStrategy();
+        const sprite = isVertical ? SPRITES.ENEMY_2 : SPRITES.ENEMY;
+
+        this.enemies.push(new Enemy(x, y, behavior, sprite));
+        return true;
+    }
+
+    /**
+     * Manually places a coin at specific coordinates
+     * @param {number} x - Grid x coordinate
+     * @param {number} y - Grid y coordinate
+     * @returns {boolean} True if coin was placed successfully
+     */
+    manualPlaceCoin(x, y) {
+        // Check bounds
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            console.warn(`Cannot place coin at (${x}, ${y}) - out of bounds`);
+            return false;
+        }
+
+        // Check if it's a floor cell
+        if (this.grid[y][x] !== 0) {
+            console.warn(`Cannot place coin at (${x}, ${y}) - not a floor cell`);
+            return false;
+        }
+
+        // Check if there's already an entity here
+        if (this.hasEntityAt(x, y)) {
+            console.warn(`Cannot place coin at (${x}, ${y}) - entity already exists`);
+            return false;
+        }
+
+        this.coins.push(new Coin(x, y));
+        return true;
+    }
+
+    /**
+     * Manually places an inner wall at specific coordinates
+     * @param {number} x - Grid x coordinate
+     * @param {number} y - Grid y coordinate
+     * @returns {boolean} True if wall was placed successfully
+     */
+    manualPlaceInnerWall(x, y) {
+        // Check bounds (don't allow placing on perimeter)
+        if (x <= 0 || x >= this.width - 1 || y <= 0 || y >= this.height - 1) {
+            console.warn(`Cannot place inner wall at (${x}, ${y}) - too close to perimeter`);
+            return false;
+        }
+
+        // Check if it's already a wall
+        if (this.grid[y][x] === 1) {
+            console.warn(`Cannot place inner wall at (${x}, ${y}) - already a wall`);
+            return false;
+        }
+
+        this.grid[y][x] = 1;
+        this.cellData[y][x].hidden = false; // Walls should be visible
+        return true;
+    }
+
+    /**
      * Updates all enemies (AI turn)
      * @param {Object} player - The player object
      */
@@ -932,29 +1068,32 @@ export class Room {
      */
     placeExit() {
         const validSides = this.getValidExitSides();
-
-        // Randomly choose from valid sides
-        const exitSide = validSides[Math.floor(Math.random() * validSides.length)];
+        const exitSide = this.config.exitSide || validSides[Math.floor(Math.random() * validSides.length)];
 
         let x, y;
 
-        switch (exitSide) {
-            case SIDE.TOP:
-                x = Math.floor(this.width / 2);
-                y = 0;
-                break;
-            case SIDE.RIGHT:
-                x = this.width - 1;
-                y = Math.floor(this.height / 2);
-                break;
-            case SIDE.BOTTOM:
-                x = Math.floor(this.width / 2);
-                y = this.height - 1;
-                break;
-            case SIDE.LEFT:
-                x = 0;
-                y = Math.floor(this.height / 2);
-                break;
+        if (this.config.exitPos) {
+            x = this.config.exitPos.x;
+            y = this.config.exitPos.y;
+        } else {
+            switch (exitSide) {
+                case SIDE.TOP:
+                    x = Math.floor(this.width / 2);
+                    y = 0;
+                    break;
+                case SIDE.RIGHT:
+                    x = this.width - 1;
+                    y = Math.floor(this.height / 2);
+                    break;
+                case SIDE.BOTTOM:
+                    x = Math.floor(this.width / 2);
+                    y = this.height - 1;
+                    break;
+                case SIDE.LEFT:
+                    x = 0;
+                    y = Math.floor(this.height / 2);
+                    break;
+            }
         }
 
         // Exit is a floor cell, just track its position and side

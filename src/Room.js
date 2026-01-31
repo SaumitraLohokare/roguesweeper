@@ -5,8 +5,9 @@ import { SPRITES } from './rendering/spriteDefinitions.js';
 import { Bomb } from './Bomb.js';
 import { Enemy } from './Enemy.js';
 import { Coin } from './Coin.js';
-import { Flag } from './Flag.js';
+import { BombDetector } from './BombDetector.js';
 import { HorizontalChaseStrategy, VerticalChaseStrategy } from './ai/EnemyBehaviors.js';
+import { Flag } from './Flag.js';
 
 // Enum for sides of the room
 export const SIDE = {
@@ -78,6 +79,9 @@ export class Room {
 
         // Store bomb detectors placed by player
         this.bombDetectors = [];
+
+        // Store flags
+        this.flags = [];
 
         // Store cell data for hints
         this.cellData = [];
@@ -716,6 +720,41 @@ export class Room {
             this.coins.some(c => c.x === x && c.y === y);
     }
 
+
+    /**
+     * Places a flat on a hidden tile
+     * @param {number} x - Grid x coordinate
+     * @param {number} y - Grid y coordinate
+     * @returns {boolean} True if bomb detector was placed successfully
+     */
+    placeFlag(x, y) {
+        // Check bounds
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            return false;
+        }
+
+        // Check if wall
+        if (this.grid[y][x] === 1) {
+            return false;
+        }
+
+        // Determine if there's a bomb at this position (for danger/safe sprite)
+        const hasFlags = this.flags.some(f => f.x === x && f.y === y);
+        if (hasFlags) {
+            console.log(`Flag already placed at (${x}, ${y})`);
+            // remove flag
+            this.removeFlag(x, y);
+            return false;
+        }
+        // Create and add the bomb detector
+        const flag = new Flag(x, y);
+        this.flags.push(flag);
+
+        console.log(`Flag placed at (${x}, ${y})`);
+
+        return true;
+    }
+
     /**
      * Places a bomb detector on a hidden tile
      * @param {number} x - Grid x coordinate
@@ -749,7 +788,7 @@ export class Room {
         const hasBomb = this.bombs.some(b => b.x === x && b.y === y);
 
         // Create and add the bomb detector
-        const bombDetector = new Flag(x, y, hasBomb);
+        const bombDetector = new BombDetector(x, y, hasBomb);
         this.bombDetectors.push(bombDetector);
 
         console.log(`Bomb detector placed at (${x}, ${y}) - ${hasBomb ? 'DANGER' : 'SAFE'}`);
@@ -760,17 +799,37 @@ export class Room {
      * Gets the bomb detector at a specific position
      * @param {number} x
      * @param {number} y
-     * @returns {Flag|null}
+     * @returns {BombDetector|null}
      */
     getBombDetectorAt(x, y) {
         return this.bombDetectors.find(f => f.x === x && f.y === y) || null;
+    }
+
+    getFlagAt(x, y) {
+        return this.flags.find(f => f.x === x && f.y === y) || null;
     }
 
     /**
      * Removes a bomb detector at the given position and returns it
      * @param {number} x
      * @param {number} y
-     * @returns {Flag|null} The removed bomb detector, or null if none found
+     * @returns {BombDetector|null} The removed bomb detector, or null if none found
+     */
+    removeFlag(x, y) {
+        const index = this.flags.findIndex(f => f.x === x && f.y === y);
+        if (index > -1) {
+            const flag = this.flags[index];
+            this.flags.splice(index, 1);
+            return flag;
+        }
+        return null;
+    }
+
+    /**
+     * Removes a bomb detector at the given position and returns it
+     * @param {number} x
+     * @param {number} y
+     * @returns {BombDetector|null} The removed bomb detector, or null if none found
      */
     removeBombDetector(x, y) {
         const index = this.bombDetectors.findIndex(f => f.x === x && f.y === y);
@@ -1092,6 +1151,12 @@ export class Room {
             bombDetector.render(ctx, renderer, this.cellSize, offsetX, offsetY);
         });
 
+
+        // Render flags (on revealed tiles - always render)
+        this.flags.forEach(flag => {
+            flag.render(ctx, renderer, this.cellSize, offsetX, offsetY);
+        });
+
         // Render entrance/exit direction arrows
         this.renderDirectionArrows(ctx, offsetX, offsetY);
     }
@@ -1259,6 +1324,11 @@ export class Room {
         if (bombDetectorAt) {
             this.removeBombDetector(x, y);
             console.log('Picked up bomb detector!');
+        }
+
+        const flagAt = this.getFlagAt(x, y);
+        if (flagAt) {
+            this.removeFlag(x, y);
         }
 
         const isEntrance = this.entrancePos && x === this.entrancePos.x && y === this.entrancePos.y;

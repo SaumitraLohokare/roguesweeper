@@ -863,6 +863,8 @@ export class Room {
         if (!entityObj) return;
 
         const { type, entity } = entityObj;
+        const ex = entity.x;
+        const ey = entity.y;
 
         if (type === 'bomb') {
             const index = this.bombs.indexOf(entity);
@@ -877,6 +879,29 @@ export class Room {
 
         // Recalculate hints immediately to reflect the change
         this.calculateHints();
+
+        // Reveal the tile if it was an enemy or coin (important for ranged attacks)
+        if ((type === 'enemy' || type === 'coin') && this.isHidden(ex, ey)) {
+            this.revealCell(ex, ey);
+            getSoundManager().playReveal();
+        }
+
+        // Check if any revealed tiles in a 3x3 area around the entity now have 0 hints.
+        // If so, trigger uncovering ripple from those tiles.
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const nx = ex + dx;
+                const ny = ey + dy;
+
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                    const cell = this.cellData[ny][nx];
+                    // If tile is revealed AND its hint is 0 AND it's not a wall or entity
+                    if (!cell.hidden && cell.hint === 0 && this.grid[ny][nx] !== 1 && !this.hasEntityAt(nx, ny)) {
+                        this.floodFillUnhide(nx, ny);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1545,8 +1570,6 @@ export class Room {
 
         if (entityObj.type === 'enemy') {
             this.removeEntity(entityObj);
-            // Trigger flood fill (now that enemy is gone, hints update, and unhide logic propagates)
-            this.floodFillUnhide(x, y);
             return PLAYER_MOVE_RESULT.ENEMY;
         }
 

@@ -85,6 +85,22 @@ const TUTORIAL_LEVELS = [
         ]
     },
     {
+        width: 3,
+        height: 10,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [],
+        enemyPositions: [
+        ],
+        coinPositions: [
+            { x: 1, y: 3 },
+            { x: 1, y: 6 },
+        ],
+        innerWallPositions: [
+        ]
+    },
+    {
         width: 30,
         height: 15,
         cellSize: 24,

@@ -1,3 +1,5 @@
+import { getSoundManager } from '../Sound.js';
+
 export class BaseChaseBehavior {
     constructor() {
         this.active = false;
@@ -134,6 +136,9 @@ export class BaseChaseBehavior {
                 console.log('Enemy steps on bomb!');
                 // Remove the bomb first
                 room.removeEntity(otherEntity);
+
+                // Play explosion sound
+                getSoundManager().playBomb();
 
                 if (particleSystem) {
                     particleSystem.emit(x, y, 'explosion', 20, room.cellSize);

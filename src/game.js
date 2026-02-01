@@ -636,10 +636,16 @@ function update() {
                     gameState.score += 10;
                     break;
                 case PLAYER_MOVE_RESULT.ENEMY:
+                    // Enemy hit - play damage sound
+                    const enemyHealthRemaining = gameState.player.takeDamage(1);
+                    console.log(`Hit by enemy! Health: ${enemyHealthRemaining}`);
+                    gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
+                    break;
                 case PLAYER_MOVE_RESULT.BOMB:
-                    const remainingHealth = gameState.player.takeDamage(1);
-                    console.log(`Hit! Health: ${remainingHealth}`);
-                    // Particle for damage/explosion at player position
+                    // Bomb explosion - play bomb sound only (not damage sound)
+                    getSoundManager().playBomb();
+                    const bombHealthRemaining = gameState.player.takeDamage(1, false);
+                    console.log(`Hit by bomb! Health: ${bombHealthRemaining}`);
                     gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
                     break;
 

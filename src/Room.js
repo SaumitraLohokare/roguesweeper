@@ -89,6 +89,10 @@ export class Room {
         // Store cell data for hints
         this.cellData = [];
 
+        // Animation Queue for flood fill
+        this.pendingReveals = [];
+
+
         // Generate the room
         this.generate();
     }
@@ -780,8 +784,9 @@ export class Room {
     /**
      * Updates all enemies (AI turn)
      * @param {Object} player - The player object
+     * @param {ParticleSystem} particleSystem - The particle system for effects
      */
-    updateEnemies(player) {
+    updateEnemies(player, particleSystem = null) {
         let anyEnemyMoved = false;
 
         // Create a copy of the array because enemies might be removed during iteration (suicide attack)
@@ -794,12 +799,11 @@ export class Room {
             // Check if enemy is still in the room (might have been removed if another enemy exploded it? Unlikely currently)
             // But good to check if it's still in the main list
             if (this.enemies.includes(enemy)) {
-                if (enemy.takeTurn(player, this)) {
+                if (enemy.takeTurn(player, this, particleSystem)) {
                     anyEnemyMoved = true;
                 }
             }
         }
-
         if (anyEnemyMoved) {
             this.calculateHints();
         }
@@ -1513,6 +1517,8 @@ export class Room {
 
         if (entityObj.type === 'enemy') {
             this.removeEntity(entityObj);
+            // Trigger flood fill (now that enemy is gone, hints update, and unhide logic propagates)
+            this.floodFillUnhide(x, y);
             return PLAYER_MOVE_RESULT.ENEMY;
         }
 
@@ -1520,53 +1526,117 @@ export class Room {
     }
 
     /**
-     * Recursively unhides tiles starting from x, y
-     * @param {number} x 
-     * @param {number} y 
-     * @param {Set<string>} visited - To keep track of visited cells in this recursion
+     * Updates the room state (animations mostly)
      */
-    floodFillUnhide(x, y, visited = new Set()) {
-        const key = `${x},${y}`;
-        if (visited.has(key)) return;
-        visited.add(key);
+    update() {
+        // Process pending reveals
+        if (this.pendingReveals.length > 0) {
+            // Reveal up to 2 tiles per frame for a slower ripple
+            const speed = 2;
+            for (let i = 0; i < speed; i++) {
+                if (this.pendingReveals.length === 0) break;
+                const { x, y } = this.pendingReveals.shift();
 
-        // Reveal this cell
-        this.revealCell(x, y);
-
-        // If this cell has a hint > 0, we stop recursing (but we still revealed it above)
-        // Also stop if it's a wall or entity (though revealCell handles validity)
-        if (this.cellData[y][x].hint > 0 || this.hasEntityAt(x, y) || this.grid[y][x] === 1) {
-            return;
-        }
-
-        // Check cardinal neighbors (full recursion)
-        const cardinalDirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-        for (const [dx, dy] of cardinalDirs) {
-            const nx = x + dx;
-            const ny = y + dy;
-
-            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                // We only recursively call if the CURRENT cell was a 0.
-                // The stopping condition is handled at the start of the next call or after revealing.
-                this.floodFillUnhide(nx, ny, visited);
-            }
-        }
-
-        // Check diagonal neighbors (only reveal if they have hint > 0)
-        const diagonalDirs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-        for (const [dx, dy] of diagonalDirs) {
-            const nx = x + dx;
-            const ny = y + dy;
-
-            if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
-                const diagonalCell = this.cellData[ny][nx];
-                // Only reveal diagonal tiles if they have a hint > 0 (do not recurse into them)
-                if (diagonalCell && diagonalCell.hint > 0 && !visited.has(`${nx},${ny}`)) {
-                    visited.add(`${nx},${ny}`);
-                    this.revealCell(nx, ny);
+                // Only reveal if still hidden (check again just in case)
+                if (this.isHidden(x, y)) {
+                    this.revealCell(x, y);
                 }
             }
         }
+    }
+
+    /**
+     * Recursively finds tiles to unhide and queues them for animation
+     * @param {number} startX 
+     * @param {number} startY 
+     */
+    floodFillUnhide(startX, startY) {
+        // BFS to find all connected 0-hint cells and their neighbors
+        const q = [{ x: startX, y: startY, dist: 0 }];
+        const visited = new Set([`${startX},${startY}`]);
+        const cellsToReveal = []; // Store {x, y, dist}
+
+        // We reveal the start immediately
+        this.revealCell(startX, startY);
+
+        let head = 0;
+        while (head < q.length) {
+            const curr = q[head++];
+            const { x, y, dist } = curr;
+
+            // Check if we should stop propagating from this cell
+            // (If it's a number/hint cell, we reveal it but don't expand)
+            // Skip this check for the start tile so it can propagate even if it has hints (e.g. from the enemy breaking it)
+            const isStart = x === startX && y === startY;
+
+            if ((!isStart && this.cellData[y][x].hint > 0) || this.hasEntityAt(x, y) || this.grid[y][x] === 1) {
+                continue;
+            }
+
+            // Neighbors
+            const dirs = [
+                { dx: 0, dy: 1 }, { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, // Cardinal
+                { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 } // Diagonal
+            ];
+
+            for (const { dx, dy } of dirs) {
+                const nx = x + dx;
+                const ny = y + dy;
+
+                if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                    const key = `${nx},${ny}`;
+                    if (!visited.has(key)) {
+                        const isDiagonal = dx !== 0 && dy !== 0;
+                        const cell = this.cellData[ny][nx];
+
+                        // Logic:
+                        // 1. If we are expanding from a 0-hint cell...
+                        // 2. We can ALWAYS reveal a neighbor (number or 0).
+                        // 3. BUT we only queue it to expand further if it is ALSO a 0-hint cell (and not diagonal).
+                        // Mirroring original logic:
+                        // - Cardinal: Recurse if 0-hint. Reveal always.
+                        // - Diagonal: Reveal ONLY if hint > 0. Don't recurse.
+
+                        let shouldReveal = false;
+                        let shouldExpand = false;
+
+                        if (isDiagonal) {
+                            // Only reveal diagonals if they have hints (to show the number border)
+                            if (cell.hint > 0 && !this.hasEntityAt(nx, ny)) {
+                                shouldReveal = true;
+                            }
+                        } else {
+                            // Cardinal: reveal if no entity on the tile
+                            if (!this.hasEntityAt(nx, ny)) {
+                                shouldReveal = true;
+                            }
+                            // Only expand if it's a 0-hint cell AND not valid "stop" conditions (wall, entity)
+                            if (cell.hint === 0 && !this.hasEntityAt(nx, ny) && this.grid[ny][nx] !== 1) {
+                                shouldExpand = true;
+                            }
+                        }
+
+                        if (shouldReveal || shouldExpand) {
+                            visited.add(key);
+                        }
+
+                        if (shouldReveal) {
+                            cellsToReveal.push({ x: nx, y: ny, dist: dist + 1 });
+                        }
+
+                        if (shouldExpand) {
+                            q.push({ x: nx, y: ny, dist: dist + 1 });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort cells by distance to create ripple effect
+        cellsToReveal.sort((a, b) => a.dist - b.dist);
+
+        // Add to pending queue
+        this.pendingReveals.push(...cellsToReveal);
     }
 
     /**

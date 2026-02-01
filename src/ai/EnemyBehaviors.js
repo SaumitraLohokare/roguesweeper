@@ -12,7 +12,7 @@ export class BaseChaseBehavior {
      * @param {Room} room - The current room
      * @returns {Object|null} Action object { moved: boolean } or null
      */
-    takeTurn(enemy, player, room) {
+    takeTurn(enemy, player, room, particleSystem = null) {
         if (!this.active) {
             // Check proximity to activate
             if (this.shouldActivate(enemy, player)) {
@@ -25,7 +25,7 @@ export class BaseChaseBehavior {
         }
 
         // Active behavior: Chase
-        const result = this.chase(enemy, player, room);
+        const result = this.chase(enemy, player, room, particleSystem);
 
         // If the enemy couldn't move, track blocked turns
         if (!result.moved) {
@@ -40,7 +40,7 @@ export class BaseChaseBehavior {
                     room.floodFillUnhide(x, y);
 
                     // Try to move there now (handles bomb interaction)
-                    if (this.tryMoveForced(enemy, x, y, room, player)) {
+                    if (this.tryMoveForced(enemy, x, y, room, player, particleSystem)) {
                         this.blockedTurns = 0;
                         this.lastDesiredMove = null;
                         return { moved: true };
@@ -62,7 +62,7 @@ export class BaseChaseBehavior {
         return dx <= 1 && dy <= 1 && (dx !== 0 || dy !== 0);
     }
 
-    chase(enemy, player, room) {
+    chase(enemy, player, room, particleSystem) {
         // To be implemented by subclasses
         return { moved: false };
     }
@@ -70,7 +70,7 @@ export class BaseChaseBehavior {
     /**
      * Attempts to move the enemy to a position, respecting hidden tiles and other blockers
      */
-    tryMove(enemy, x, y, room, player) {
+    tryMove(enemy, x, y, room, player, particleSystem) {
         if (room.isValidMove(x, y)) {
             const otherEntity = room.getEntityAt(x, y);
 
@@ -112,7 +112,7 @@ export class BaseChaseBehavior {
     /**
      * Forces a move after tile breaking - allows moving onto bombs (takes damage)
      */
-    tryMoveForced(enemy, x, y, room, player) {
+    tryMoveForced(enemy, x, y, room, player, particleSystem) {
         if (room.isValidMove(x, y)) {
             const otherEntity = room.getEntityAt(x, y);
 
@@ -134,11 +134,19 @@ export class BaseChaseBehavior {
                 console.log('Enemy steps on bomb!');
                 // Remove the bomb first
                 room.removeEntity(otherEntity);
+
+                if (particleSystem) {
+                    particleSystem.emit(x, y, 'explosion', 20, room.cellSize);
+                    particleSystem.emit(x, y, 'blood', 15, room.cellSize); // Add blood splatter
+                }
+
                 // Enemy takes damage
                 const remainingHealth = enemy.takeDamage(1);
                 if (remainingHealth <= 0) {
                     console.log('Enemy killed by bomb!');
                     room.removeEntity({ type: 'enemy', entity: enemy });
+                    // Trigger flood fill around death spot
+                    room.floodFillUnhide(x, y);
                     return true; // Enemy died, but it did act
                 }
                 // Move to the bomb's position
@@ -159,14 +167,14 @@ export class BaseChaseBehavior {
 }
 
 export class HorizontalChaseStrategy extends BaseChaseBehavior {
-    chase(enemy, player, room) {
+    chase(enemy, player, room, particleSystem) {
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
 
         // Try horizontal first
         if (dx !== 0) {
             const nextX = enemy.x + Math.sign(dx);
-            if (this.tryMove(enemy, nextX, enemy.y, room, player)) {
+            if (this.tryMove(enemy, nextX, enemy.y, room, player, particleSystem)) {
                 return { moved: true };
             }
         }
@@ -174,7 +182,7 @@ export class HorizontalChaseStrategy extends BaseChaseBehavior {
         // Then vertical
         if (dy !== 0) {
             const nextY = enemy.y + Math.sign(dy);
-            if (this.tryMove(enemy, enemy.x, nextY, room, player)) {
+            if (this.tryMove(enemy, enemy.x, nextY, room, player, particleSystem)) {
                 return { moved: true };
             }
         }
@@ -184,14 +192,14 @@ export class HorizontalChaseStrategy extends BaseChaseBehavior {
 }
 
 export class VerticalChaseStrategy extends BaseChaseBehavior {
-    chase(enemy, player, room) {
+    chase(enemy, player, room, particleSystem) {
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
 
         // Try vertical first
         if (dy !== 0) {
             const nextY = enemy.y + Math.sign(dy);
-            if (this.tryMove(enemy, enemy.x, nextY, room, player)) {
+            if (this.tryMove(enemy, enemy.x, nextY, room, player, particleSystem)) {
                 return { moved: true };
             }
         }
@@ -199,7 +207,7 @@ export class VerticalChaseStrategy extends BaseChaseBehavior {
         // Then horizontal
         if (dx !== 0) {
             const nextX = enemy.x + Math.sign(dx);
-            if (this.tryMove(enemy, nextX, enemy.y, room, player)) {
+            if (this.tryMove(enemy, nextX, enemy.y, room, player, particleSystem)) {
                 return { moved: true };
             }
         }

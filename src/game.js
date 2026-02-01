@@ -6,6 +6,7 @@ import { PLAYER_MOVE_RESULT, Room, SIDE } from './Room.js';
 import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
+import { ParticleSystem } from './rendering/ParticleSystem.js';
 
 const DIFFICULTY_TIERS = [
     { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
@@ -103,7 +104,11 @@ let gameState = {
     volume: 0.8,
     isDraggingVolume: false,
     volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
-    currentTutorialIndex: 0  // Track tutorial progress: 0-based index, -1 means tutorials complete
+    currentTutorialIndex: 0,  // Track tutorial progress: 0-based index, -1 means tutorials complete
+    particleSystem: null,
+    transitioning: false,
+    transitionAlpha: 0,
+    transitionState: 'IN', // 'IN' (fading in new room) or 'OUT' (fading out old room)
 };
 
 export function initGame(canvas, ctx) {
@@ -111,6 +116,7 @@ export function initGame(canvas, ctx) {
 
     // Initialize sprite renderer (works with multiple sheets)
     gameState.spriteRenderer = new SpriteRenderer();
+    gameState.particleSystem = new ParticleSystem();
 
     // Initialize input
     gameState.input = new Input();
@@ -302,9 +308,21 @@ function loadTutorialLevel(index) {
 
     // Trigger initial room logic for player start position
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
+
+    // Trigger Spawn Particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'spawn', 30, gameState.currentRoom.cellSize);
+    }
 }
 
 function startNextLevel() {
+    console.log("Starting transition to next level...");
+    gameState.transitioning = true;
+    gameState.transitionState = 'OUT';
+    gameState.transitionAlpha = 0;
+}
+
+function performNextLevel() {
     // Increment level
     let currentTutorialIndex = getTutorialCompletedLevel();
 
@@ -355,11 +373,15 @@ function startRandomLevel(entranceSide) {
         gameState.player = new Player(entrance.x, entrance.y, 3);
     } else {
         // Move player to new entrance
-        gameState.player.x = entrance.x;
-        gameState.player.y = entrance.y;
+        gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);
     }
 
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
+
+    // Trigger Spawn Particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'spawn', 30, gameState.currentRoom.cellSize);
+    }
 }
 
 function gameLoop(canvas, ctx) {
@@ -370,6 +392,24 @@ function gameLoop(canvas, ctx) {
 
     // Update game state
     update();
+
+    // Handle Transition
+    if (gameState.transitioning) {
+        if (gameState.transitionState === 'OUT') {
+            gameState.transitionAlpha += 0.01; // Slower fade
+            if (gameState.transitionAlpha >= 1) {
+                gameState.transitionAlpha = 1;
+                performNextLevel();
+                gameState.transitionState = 'IN';
+            }
+        } else if (gameState.transitionState === 'IN') {
+            gameState.transitionAlpha -= 0.01; // Slower fade
+            if (gameState.transitionAlpha <= 0) {
+                gameState.transitionAlpha = 0;
+                gameState.transitioning = false;
+            }
+        }
+    }
 
     // Render game
     render(ctx);
@@ -442,6 +482,8 @@ function update() {
                 case PLAYER_MOVE_RESULT.BOMB:
                     const remainingHealth = gameState.player.takeDamage(1);
                     console.log(`Hit! Health: ${remainingHealth}`);
+                    // Particle for damage/explosion at player position
+                    gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
                     break;
 
             }
@@ -484,7 +526,7 @@ function update() {
                 }
             } else {
                 // --- Attack (sword equipped) ---
-                if (gameState.player.attack(arrowDx, arrowDy, gameState.currentRoom)) {
+                if (gameState.player.attack(arrowDx, arrowDy, gameState.currentRoom, gameState.particleSystem)) {
                     actionTaken = true;
                 }
             }
@@ -495,7 +537,7 @@ function update() {
     // Trigger only if player performed an action (Move or Attack)
     if (actionTaken) {
         if (gameState.player.health > 0) {
-            gameState.currentRoom.updateEnemies(gameState.player);
+            gameState.currentRoom.updateEnemies(gameState.player, gameState.particleSystem);
         }
 
         // --- Game State Check ---
@@ -506,6 +548,14 @@ function update() {
         }
     }
 
+    // Update particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.update();
+    }
+
+    if (gameState.currentRoom) {
+        gameState.currentRoom.update();
+    }
     // Update input state at the end of the frame
     gameState.input.update();
 }
@@ -836,6 +886,11 @@ function render(ctx) {
             gameState.player.render(ctx, renderer, gameState.currentRoom.cellSize, offsetX, offsetY);
         }
 
+        // Render Particles (Game Space)
+        if (gameState.particleSystem) {
+            gameState.particleSystem.render(ctx, offsetX, offsetY, gameState.currentRoom.cellSize);
+        }
+
         // --- GUI (Relative to Middle Section) ---
         ctx.shadowColor = 'black';
         ctx.shadowBlur = 2;
@@ -891,5 +946,15 @@ function render(ctx) {
         ctx.font = '20px "Press Start 2P", monospace';
         ctx.fillStyle = 'white';
         ctx.fillText('Press R to Restart', width / 2, height / 2 + 50);
+    }
+    // --- Transition Overlay ---
+    if (gameState.transitioning) {
+        // Only cover the middle panel area
+        const middleSize = Math.min(width, height);
+        const middleX = (width - middleSize) / 2;
+        const middleY = (height - middleSize) / 2;
+
+        ctx.fillStyle = `rgba(0, 0, 0, ${gameState.transitionAlpha})`;
+        ctx.fillRect(middleX, middleY, middleSize, middleSize);
     }
 }

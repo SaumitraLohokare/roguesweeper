@@ -47,7 +47,8 @@ const TUTORIAL_LEVELS = [
         ],
         innerWallPositions: [
             { x: 5, y: 5 },
-        ]
+        ],
+        tutorialText: "Welcome! Use WASD to move. Reach the exit at the bottom."
     },
     {
         width: 7,
@@ -66,7 +67,8 @@ const TUTORIAL_LEVELS = [
             { x: 2, y: 5 },
             { x: 4, y: 5 },
             { x: 5, y: 5 },
-        ]
+        ],
+        tutorialText: "Enemies move when you do. Use Arrow Keys to attack them!"
     },
     {
         width: 4,
@@ -83,7 +85,8 @@ const TUTORIAL_LEVELS = [
         coinPositions: [
         ],
         innerWallPositions: [
-        ]
+        ],
+        tutorialText: "Switch to Bomb Detector with Space. Mark suspect tiles with Arrow Keys."
     },
     {
         width: 3,
@@ -99,7 +102,8 @@ const TUTORIAL_LEVELS = [
             { x: 1, y: 6 },
         ],
         innerWallPositions: [
-        ]
+        ],
+        tutorialText: "Collect coins! You can buy more detectors with 'B' (50 coins)."
     },
     {
         width: 30,
@@ -178,7 +182,8 @@ const TUTORIAL_LEVELS = [
         coinPositions: [
         ],
         innerWallPositions: [
-        ]
+        ],
+        tutorialText: "The floor is yours. Good luck reaching the deep dungeon!"
     }
 
 ];
@@ -1064,6 +1069,53 @@ function render(ctx) {
         if (gameState.floatingTextSystem) {
             gameState.floatingTextSystem.render(ctx);
         }
+    }
+
+    // --- Render Tutorial Text (Overlay on middle section) ---
+    if (gameState.currentTutorialIndex >= 0 && TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText) {
+        const text = TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText;
+        ctx.font = '12px "Press Start 2P", monospace';
+
+        const maxWidth = middleSize - 60; // Leave some space
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = ctx.measureText(currentLine + " " + word).width;
+            if (width < maxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+
+        const lineHeight = 20;
+        const padding = 15;
+        const longestLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
+        const boxWidth = longestLineWidth + padding * 2;
+        const boxHeight = lines.length * lineHeight + padding * 2;
+
+        const boxX = middleX + (middleSize - boxWidth) / 2;
+        const boxY = middleY + middleSize - boxHeight - 80; // Moved higher 
+
+        // Draw background box
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Draw text
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        lines.forEach((line, index) => {
+            ctx.fillText(line, middleX + middleSize / 2, boxY + padding + index * lineHeight + lineHeight / 2);
+        });
     }
 
     ctx.restore();

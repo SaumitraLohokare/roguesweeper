@@ -1584,13 +1584,18 @@ export class Room {
         if (this.pendingReveals.length > 0) {
             // Reveal up to 2 tiles per frame for a slower ripple
             const speed = 2;
-            for (let i = 0; i < speed; i++) {
-                if (this.pendingReveals.length === 0) break;
+            let revealedCount = 0;
+
+            // Loop until we've revealed 'speed' number of tiles OR queue is empty
+            while (revealedCount < speed && this.pendingReveals.length > 0) {
                 const { x, y } = this.pendingReveals.shift();
 
-                // Only reveal if still hidden (check again just in case)
+                // Only reveal if still hidden
+                // We consume queue items for already-revealed cells without incrementing revealedCount
+                // effectively "skipping" them instantly
                 if (this.isHidden(x, y)) {
                     this.revealCell(x, y);
+                    revealedCount++;
                 }
             }
         }
@@ -1671,7 +1676,7 @@ export class Room {
                             visited.add(key);
                         }
 
-                        if (shouldReveal) {
+                        if (shouldReveal && this.isHidden(nx, ny)) {
                             cellsToReveal.push({ x: nx, y: ny, dist: dist + 1 });
                         }
 

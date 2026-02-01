@@ -66,7 +66,7 @@ const TUTORIAL_LEVELS = [
             { x: 4, y: 5 },
             { x: 5, y: 5 },
         ],
-        tutorialText: "Enemies move when you do. Use Arrow Keys to attack them!"
+        tutorialText: "Moving close to an enemy reveals them!\nEnemies move when you do. Use Arrow Keys to attack them!"
     },
     {
         width: 4,
@@ -83,7 +83,7 @@ const TUTORIAL_LEVELS = [
         ],
         innerWallPositions: [
         ],
-        tutorialText: "Switch to Bomb Detector with Space. Mark suspect tiles with Arrow Keys."
+        tutorialText: "Switch to Bomb Detector with Space.\nMark suspect tiles with Arrow Keys."
     },
     {
         width: 3,
@@ -221,12 +221,16 @@ let gameState = {
     volume: 0.8,
     isDraggingVolume: false,
     volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
+    musicToggle: null, // Store music toggle button layout
     currentTutorialIndex: 0,  // Track tutorial progress: 0-based index, -1 means tutorials complete
     particleSystem: null,
     floatingTextSystem: null,
     transitioning: false,
     transitionAlpha: 0,
+    transitionAlpha: 0,
     transitionState: 'IN', // 'IN' (fading in new room) or 'OUT' (fading out old room)
+    menuActive: true, // Start in menu mode
+    startScreenButtons: null // Store button layouts
 };
 
 export function initGame(canvas, ctx) {
@@ -286,6 +290,19 @@ function registerInputs(canvas) {
                 return;
             }
         }
+
+        // Check if hitting music toggle
+        if (gameState.musicToggle) {
+            const mt = gameState.musicToggle;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 5;
+
+            if (mx >= mt.x - padding && mx <= mt.x + mt.w + padding && my >= mt.y - padding && my <= mt.y + mt.h + padding) {
+                getSoundManager().toggleMusic();
+                return;
+            }
+        }
     });
 
     window.addEventListener('mousemove', (event) => {
@@ -301,12 +318,7 @@ function registerInputs(canvas) {
     // Keep click for board interactions to prevent accidental flag placement while dragging
     canvas.addEventListener('click', (event) => {
         // If we were just dragging (or mouseup happened), don't place flag? 
-        // Actually, if isDraggingVolume was just set to false in mouseup, we might need a way to know "did we drag"?
         // But simpler: if the click is ON the slider, we ignore it (handled by mousedown/drag).
-        // If click is on board, we process it. 
-
-        // However, standard click logic might fire after mousedown/up.
-        // Let's check collision again.
 
         if (gameState.volumeSlider) {
             const vs = gameState.volumeSlider;
@@ -317,6 +329,52 @@ function registerInputs(canvas) {
             if (mx >= vs.x - padding && mx <= vs.x + vs.w + padding && my >= vs.y - padding && my <= vs.y + vs.h + padding) {
                 return; // Ignore click on slider (handled by drag)
             }
+        }
+
+        if (gameState.musicToggle) {
+            const mt = gameState.musicToggle;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 5;
+
+            if (mx >= mt.x - padding && mx <= mt.x + mt.w + padding && my >= mt.y - padding && my <= mt.y + mt.h + padding) {
+                return; // Ignore click on music toggle
+            }
+        }
+
+        // --- Menu Interactions ---
+        if (gameState.menuActive && gameState.startScreenButtons) {
+            const mx = event.clientX;
+            const my = event.clientY;
+            const btnPlay = gameState.startScreenButtons.play;
+            const btnTutorial = gameState.startScreenButtons.tutorial;
+
+            // Check Play Button
+            if (mx >= btnPlay.x && mx <= btnPlay.x + btnPlay.w && my >= btnPlay.y && my <= btnPlay.y + btnPlay.h) {
+                console.log('Play button clicked');
+                getSoundManager().startMusic(); // Ensure music starts
+                gameState.menuActive = false;
+
+                // If game hasn't really started yet (no room), start it
+                if (!gameState.currentRoom) {
+                    startNewGame();
+                }
+                return;
+            }
+
+            // Check Tutorial Button
+            if (mx >= btnTutorial.x && mx <= btnTutorial.x + btnTutorial.w && my >= btnTutorial.y && my <= btnTutorial.y + btnTutorial.h) {
+                console.log('Tutorial button clicked');
+                getSoundManager().startMusic();
+
+                // Reset tutorial state
+                setTutorialCompletedLevel(0);
+                gameState.menuActive = false;
+                startNewGame();
+                return;
+            }
+
+            return; // Don't process other clicks if menu is active
         }
 
         const width = canvas.width;
@@ -338,7 +396,9 @@ function registerInputs(canvas) {
         let mouseXPixel = Math.floor(mouseXPosition / gameState.currentRoom.cellSize);
         let mouseYPixel = Math.floor(mouseYPosition / gameState.currentRoom.cellSize);
 
-        gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
+        if (gameState.currentRoom) {
+            gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
+        }
     });
 }
 
@@ -349,8 +409,8 @@ function checkAllSheetsLoaded(canvas, ctx) {
     if (allLoaded && !gameState.running) {
         console.log('All sprite sheets ready, starting game loop');
 
-        startNewGame();
-
+        // Do NOT startNewGame immediately. Wait for user to click Play/Tutorial.
+        // We start the loop to render the menu.
         gameState.running = true;
         gameLoop(canvas, ctx);
     }
@@ -548,6 +608,8 @@ function gameLoop(canvas, ctx) {
 }
 
 function update() {
+    if (gameState.menuActive) return; // Pause updates while in menu
+
     if (!gameState.player || !gameState.input) return;
 
     // Handle Game Over Input
@@ -906,6 +968,32 @@ const renderRightPanel = (ctx, centerX, startY, panelWidth, calculateHeightOnly 
         ctx.font = `${Math.floor(8 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
         ctx.fillText('VOL', sliderX - 25 * scale, sliderY + 8 * scale);
+
+
+        // --- Music Toggle Button ---
+        const toggleSize = 25 * scale;
+        // Increased padding from 40 to 60 to give more space
+        const toggleX = sliderX - toggleSize - 60 * scale;
+        const toggleY = sliderY - 5 * scale;
+
+        gameState.musicToggle = { x: toggleX, y: toggleY, w: toggleSize, h: toggleSize };
+
+        // Button BG
+        const isMusicOn = getSoundManager().isMusicEnabled();
+        ctx.fillStyle = isMusicOn ? '#444' : '#222';
+        ctx.fillRect(toggleX, toggleY, toggleSize, toggleSize);
+
+        // Button Border
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2 * scale;
+        ctx.strokeRect(toggleX, toggleY, toggleSize, toggleSize);
+
+        // Icon (Simple Note or X)
+        ctx.fillStyle = isMusicOn ? '#ffcc00' : '#888';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `${Math.floor(12 * scale)}px "Press Start 2P", monospace`;
+        ctx.fillText(isMusicOn ? '♪' : 'X', toggleX + toggleSize / 2, toggleY + toggleSize / 2);
     }
     // No y increment -> slider is out of flow
 
@@ -1144,54 +1232,157 @@ function render(ctx) {
         }
     }
 
-    // --- Render Tutorial Text (Overlay on middle section) ---
-    if (gameState.currentTutorialIndex >= 0 && TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText) {
+    // --- Render Tutorial Text (Top area of middle section) ---
+    if (gameState.currentTutorialIndex >= 0 && TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText && gameState.currentRoom) {
         const text = TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText;
-        ctx.font = '12px "Press Start 2P", monospace';
 
-        const maxWidth = middleSize - 60; // Leave some space
-        const words = text.split(' ');
+        const maxWidth = middleSize - 40; // 20px padding each side
+
+        // Calculate dynamic font size
+        // We want to fit context without being too small. 
+        // We assume wrapping is okay, so we don't strictly force it to fit width in one line.
+        // However, if there is a LOT of text, we shrink to ensure it fits vertically.
+        let fontSize = 18;
+        if (text.length > 80) fontSize = 16;
+        if (text.length > 150) fontSize = 14;
+
+        ctx.font = `${fontSize}px "Press Start 2P", monospace`;
+
         const lines = [];
-        let currentLine = words[0];
+        const paragraphs = text.split('\n');
 
-        for (let i = 1; i < words.length; i++) {
-            const word = words[i];
-            const width = ctx.measureText(currentLine + " " + word).width;
-            if (width < maxWidth) {
-                currentLine += " " + word;
-            } else {
-                lines.push(currentLine);
-                currentLine = word;
+        paragraphs.forEach(paragraph => {
+            const words = paragraph.split(' ');
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + " " + word).width;
+                if (width < maxWidth) {
+                    currentLine += " " + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
             }
-        }
-        lines.push(currentLine);
-
-        const lineHeight = 20;
-        const padding = 15;
-        const longestLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
-        const boxWidth = longestLineWidth + padding * 2;
-        const boxHeight = lines.length * lineHeight + padding * 2;
-
-        const boxX = middleX + (middleSize - boxWidth) / 2;
-        const boxY = middleY + middleSize - boxHeight - 80; // Moved higher 
-
-        // Draw background box
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
-        ctx.strokeStyle = '#ffcc00';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
-
-        // Draw text
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        lines.forEach((line, index) => {
-            ctx.fillText(line, middleX + middleSize / 2, boxY + padding + index * lineHeight + lineHeight / 2);
+            lines.push(currentLine);
         });
+
+        const lineHeight = fontSize * 1.5;
+        const totalTextHeight = lines.length * lineHeight;
+
+        // Positioning: Below top UI (Stats) and above Grid
+        // Top UI ends roughly at middleY + 40
+        // Grid starts at offsetY
+        // Center in the available space
+        const topUIBottom = middleY + 50;
+        // We need to calculate offsetY here since it wasn't exposed from the room block above
+        // Re-calculating room render offset for text placement
+        const roomPWidth = gameState.currentRoom.width * gameState.currentRoom.cellSize;
+        const roomPHeight = gameState.currentRoom.height * gameState.currentRoom.cellSize;
+        const gridOffsetY = middleY + (middleSize - roomPHeight) / 2;
+
+        const availableSpaceY = gridOffsetY - topUIBottom;
+        const textY = topUIBottom + (availableSpaceY - totalTextHeight) / 2;
+
+        // Pulsing Effect
+        const time = Date.now() / 500;
+        const pulse = 0.8 + Math.sin(time) * 0.2; // 0.6 to 1.0 opacity
+
+        ctx.fillStyle = `rgba(255, 204, 0, ${pulse})`; // Gold color with pulse
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 4;
+
+        lines.forEach((line, index) => {
+            ctx.fillText(line, middleX + middleSize / 2, textY + index * lineHeight);
+        });
+
+        ctx.shadowBlur = 0; // Reset
     }
 
     ctx.restore();
+
+    // --- Render Start Screen / Menu ---
+    if (gameState.menuActive) {
+        // Dim background if a room exists, otherwise solid
+        if (gameState.currentRoom) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        } else {
+            ctx.fillStyle = '#1a1a1a';
+        }
+
+        // Only cover the middle panel area
+        const middleSize = Math.min(width, height) - (width > height ? 0 : 0); // Re-calc middle size logic effectively
+        // Actually, let's just use the calculated middleX/Y/Size variables if accessible, but we need to re-calc or pass them.
+        // To be safe, re-calc:
+        const minSidePanelWidth = 250;
+        const maxMiddleWidth = width - (minSidePanelWidth * 2);
+        let mSize = Math.min(height, maxMiddleWidth);
+        if (mSize < 0) mSize = width;
+        const mX = (width - mSize) / 2;
+        const mY = (height - mSize) / 2;
+
+        ctx.fillRect(mX, mY, mSize, height);
+
+        // Render Menu Content
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const centerX = mX + mSize / 2;
+        const centerY = mY + height / 2;
+
+        // Title (Only if no room, otherwise maybe just "Paused" or "Ready?")
+        if (!gameState.currentRoom) {
+            ctx.font = '40px "Press Start 2P", monospace';
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillText('ROGUE SWEEPER', centerX, centerY - 100);
+        }
+
+        // Buttons
+        const buttonWidth = 200;
+        const buttonHeight = 50;
+        const gap = 20;
+
+        // Play Button (Centered)
+        const playBtnX = centerX - buttonWidth / 2;
+        const playBtnY = centerY - buttonHeight / 2;
+
+        // Tutorial Button (Below Play)
+        const tutBtnX = centerX - buttonWidth / 2;
+        const tutBtnY = playBtnY + buttonHeight + gap;
+
+        // Store for click detection
+        gameState.startScreenButtons = {
+            play: { x: playBtnX, y: playBtnY, w: buttonWidth, h: buttonHeight },
+            tutorial: { x: tutBtnX, y: tutBtnY, w: buttonWidth, h: buttonHeight }
+        };
+
+        // Draw Play Button
+        ctx.fillStyle = '#333';
+        ctx.fillRect(playBtnX, playBtnY, buttonWidth, buttonHeight);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(playBtnX, playBtnY, buttonWidth, buttonHeight);
+
+        ctx.font = '20px "Press Start 2P", monospace';
+        ctx.fillStyle = 'white';
+        // Determine text based on state
+        const playText = gameState.currentRoom ? "RESUME" : "PLAY";
+        ctx.fillText(playText, centerX, playBtnY + buttonHeight / 2);
+
+        // Draw Tutorial Button
+        ctx.fillStyle = '#333';
+        ctx.fillRect(tutBtnX, tutBtnY, buttonWidth, buttonHeight);
+        ctx.strokeStyle = '#888'; // Different color to deemphasize
+        ctx.lineWidth = 3;
+        ctx.strokeRect(tutBtnX, tutBtnY, buttonWidth, buttonHeight);
+
+        ctx.font = '14px "Press Start 2P", monospace';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText("PLAY TUTORIAL", centerX, tutBtnY + buttonHeight / 2);
+    }
 
     // --- Render Game Over Overlay (Full Screen) ---
     if (gameState.gameOver && gameState.currentRoom) {

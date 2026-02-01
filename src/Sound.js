@@ -108,9 +108,24 @@ export class SoundManager {
     // --- Background Music ---
     musicLoopId = null;
     noteIndex = 0;
+    musicEnabled = true;
+
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        if (this.musicEnabled) {
+            this.startMusic();
+        } else {
+            this.stopMusic();
+        }
+        return this.musicEnabled;
+    }
+
+    isMusicEnabled() {
+        return this.musicEnabled;
+    }
 
     startMusic() {
-        if (this.musicLoopId) return;
+        if (!this.musicEnabled || this.musicLoopId) return;
 
         // Explicitly resume context here to ensure it wakes up on user interaction
         if (this.audioCtx.state === 'suspended') {

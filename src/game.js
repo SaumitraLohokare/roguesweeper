@@ -10,10 +10,10 @@ import { ParticleSystem } from './rendering/ParticleSystem.js';
 import { FloatingTextSystem } from './rendering/FloatingText.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
-    { maxRoom: 6, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
-    { maxRoom: 10, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
-    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
+    { maxRoom: 3, config: { width: 12, height: 12, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
+    { maxRoom: 6, config: { width: 18, height: 18, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
+    { maxRoom: 10, config: { width: 24, height: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
 ];
 
 const TUTORIAL_COMPLETED_KEY = 'roguesweeper_tutorial_finished';
@@ -35,7 +35,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 7,
         height: 7,
-        cellSize: 40,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [
@@ -53,7 +52,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 7,
         height: 9,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [],
@@ -73,7 +71,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 4,
         height: 10,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [
@@ -91,7 +88,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 3,
         height: 10,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [],
@@ -108,7 +104,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 30,
         height: 15,
-        cellSize: 24,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [
@@ -187,6 +182,25 @@ const TUTORIAL_LEVELS = [
     }
 
 ];
+
+/**
+ * Gets the available middle panel size for room rendering
+ * @returns {{width: number, height: number}} Available dimensions in pixels
+ */
+function getMiddlePanelSize() {
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas) return { width: 800, height: 600 }; // Default fallback
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const minSidePanelWidth = 250;
+    const maxMiddleWidth = width - (minSidePanelWidth * 2);
+
+    let middleSize = Math.min(height, maxMiddleWidth);
+    if (middleSize < 0) middleSize = width;
+
+    return { width: middleSize, height: middleSize };
+}
 
 function getRoomConfig(roomNumber) {
     const tier = DIFFICULTY_TIERS.find(t => roomNumber <= t.maxRoom);
@@ -374,11 +388,15 @@ function loadTutorialLevel(index) {
 
     const tutorialConfig = TUTORIAL_LEVELS[index];
 
+    // Get available screen dimensions
+    const panelSize = getMiddlePanelSize();
+
     // Create room with manual setup enabled
     gameState.currentRoom = new Room({
         width: tutorialConfig.width,
         height: tutorialConfig.height,
-        cellSize: tutorialConfig.cellSize,
+        availableWidth: panelSize.width,
+        availableHeight: panelSize.height,
         entranceSide: tutorialConfig.entranceSide,
         exitSide: tutorialConfig.exitSide,
         exitPos: tutorialConfig.exitPos, // Optional
@@ -467,9 +485,14 @@ function startRandomLevel(entranceSide) {
     // Get config for new level
     const config = getRoomConfig(gameState.roomNumber);
 
+    // Get available screen dimensions
+    const panelSize = getMiddlePanelSize();
+
     // Create new room
     gameState.currentRoom = new Room({
         ...config,
+        availableWidth: panelSize.width,
+        availableHeight: panelSize.height,
         entranceSide: entranceSide
     });
 

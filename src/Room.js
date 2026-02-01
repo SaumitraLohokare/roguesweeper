@@ -37,7 +37,6 @@ export class Room {
         this.config = {
             width: 20,
             height: 20,
-            cellSize: 30,
             entranceSide: SIDE.TOP,
             exitSide: null,
             exitPos: null,
@@ -48,12 +47,14 @@ export class Room {
             wallChunkAttempts: 20,
             minChunkSize: 2,
             maxChunkSizeBase: 8,
+            availableWidth: 800,
+            availableHeight: 600,
             ...config
         };
 
         this.width = this.config.width;
         this.height = this.config.height;
-        this.cellSize = this.config.cellSize;
+        this.cellSize = this.calculateOptimalCellSize(this.config.availableWidth, this.config.availableHeight);
         this.entranceSide = this.config.entranceSide;
         this.bombCount = this.config.bombCount;
         this.enemyCount = this.config.enemyCount;
@@ -95,6 +96,32 @@ export class Room {
 
         // Generate the room
         this.generate();
+    }
+
+    /**
+     * Calculates the optimal cell size based on available screen space
+     * @param {number} availableWidth - Available width in pixels
+     * @param {number} availableHeight - Available height in pixels
+     * @returns {number} Calculated cell size in pixels
+     */
+    calculateOptimalCellSize(availableWidth, availableHeight) {
+        const PADDING = 80; // Padding around the room for comfortable fit and to avoid UI overlap
+        const MIN_CELL_SIZE = 15; // Minimum for readability and playability
+        const MAX_CELL_SIZE = 50; // Maximum to avoid huge cells on large screens
+
+        const usableWidth = availableWidth - PADDING * 2;
+        const usableHeight = availableHeight - PADDING * 2;
+
+        const cellSizeByWidth = Math.floor(usableWidth / this.width);
+        const cellSizeByHeight = Math.floor(usableHeight / this.height);
+
+        // Use the smaller dimension to ensure it fits
+        let cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+
+        // Apply constraints
+        cellSize = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, cellSize));
+
+        return cellSize;
     }
 
     /**
@@ -1248,21 +1275,22 @@ export class Room {
                         ctx.textBaseline = 'middle';
                         ctx.fillText(data.hint, pixelX + this.cellSize / 2, pixelY + this.cellSize / 2);
 
-                        // Draw indicators
+                        // Draw indicators - scaled to cell size
                         const indicators = [];
                         if (data.hasNeighborBomb) indicators.push('red');
                         if (data.hasNeighborEnemy) indicators.push('green');
                         if (data.hasNeighborCoin) indicators.push('yellow');
 
                         if (indicators.length > 0) {
-                            const circleY = pixelY + this.cellSize - 5;
-                            const spacing = 4;
+                            const circleRadius = this.cellSize * 0.05; // 5% of cell size
+                            const circleY = pixelY + this.cellSize - (this.cellSize * 0.15); // 15% from bottom
+                            const spacing = this.cellSize * 0.13; // Spacing between circles
                             const totalWidth = (indicators.length - 1) * spacing;
                             let startX = pixelX + this.cellSize / 2 - totalWidth / 2;
 
                             indicators.forEach((color, index) => {
                                 ctx.beginPath();
-                                ctx.arc(startX + index * spacing, circleY, 1.5, 0, Math.PI * 2);
+                                ctx.arc(startX + index * spacing, circleY, circleRadius, 0, Math.PI * 2);
                                 ctx.fillStyle = color;
                                 ctx.fill();
                             });

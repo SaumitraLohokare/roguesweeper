@@ -7,6 +7,7 @@ import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 import { ParticleSystem } from './rendering/ParticleSystem.js';
+import { FloatingTextSystem } from './rendering/FloatingText.js';
 
 const DIFFICULTY_TIERS = [
     { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
@@ -202,6 +203,7 @@ let gameState = {
     volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
     currentTutorialIndex: 0,  // Track tutorial progress: 0-based index, -1 means tutorials complete
     particleSystem: null,
+    floatingTextSystem: null,
     transitioning: false,
     transitionAlpha: 0,
     transitionState: 'IN', // 'IN' (fading in new room) or 'OUT' (fading out old room)
@@ -213,6 +215,7 @@ export function initGame(canvas, ctx) {
     // Initialize sprite renderer (works with multiple sheets)
     gameState.spriteRenderer = new SpriteRenderer();
     gameState.particleSystem = new ParticleSystem();
+    gameState.floatingTextSystem = new FloatingTextSystem();
 
     // Initialize input
     gameState.input = new Input();
@@ -572,6 +575,33 @@ function update() {
                     break;
                 case PLAYER_MOVE_RESULT.COIN:
                     getSoundManager().playCoin();
+
+                    // Calculate coin count position for floating text
+                    // The coin count is displayed at the top-right of the middle panel
+                    const canvas = document.getElementById('gameCanvas');
+                    if (canvas && gameState.floatingTextSystem) {
+                        const width = canvas.width;
+                        const height = canvas.height;
+                        const minSidePanelWidth = 250;
+                        const maxMiddleWidth = width - (minSidePanelWidth * 2);
+                        let middleSize = Math.min(height, maxMiddleWidth);
+                        if (middleSize < 0) middleSize = width;
+                        const middleX = (width - middleSize) / 2;
+                        const middleY = (height - middleSize) / 2;
+                        const guiPadding = 20;
+
+                        // Position below the coin counter (top-right of middle section)
+                        const coinCountX = middleX + middleSize - guiPadding;
+                        const coinCountY = middleY + guiPadding + 30; // +30 to position below the text
+
+                        gameState.floatingTextSystem.spawn('+10', coinCountX, coinCountY, {
+                            color: '#ffcc00',
+                            duration: 1200,
+                            riseDistance: 50,
+                            fontSize: '16px'
+                        });
+                    }
+
                     gameState.coins += 10;
                     break;
                 case PLAYER_MOVE_RESULT.ENEMY:
@@ -647,6 +677,11 @@ function update() {
     // Update particles
     if (gameState.particleSystem) {
         gameState.particleSystem.update();
+    }
+
+    // Update floating texts
+    if (gameState.floatingTextSystem) {
+        gameState.floatingTextSystem.update();
     }
 
     if (gameState.currentRoom) {
@@ -1024,6 +1059,11 @@ function render(ctx) {
         ctx.fillText(`${bombDetectorIndicator}Detector x${gameState.player.bombDetectorCount}`, middleX + guiPadding, middleY + middleSize - 35);
 
         ctx.shadowBlur = 0; // Reset
+
+        // Render Floating Texts (UI Space - rendered last so they appear on top)
+        if (gameState.floatingTextSystem) {
+            gameState.floatingTextSystem.render(ctx);
+        }
     }
 
     ctx.restore();

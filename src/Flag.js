@@ -24,9 +24,9 @@ export class Flag {
      * @param {number} offsetY - Y offset for rendering (in pixels)
      */
     render(ctx, renderer, cellSize, offsetX = 0, offsetY = 0) {
-        const pixelX = offsetX + this.x * cellSize;
-        const pixelY = offsetY + this.y * cellSize;
-        const scale = cellSize / 10; // Assuming 10x10 pixel sprites
+        const pixelX = offsetX + 2.5 + this.x * cellSize;
+        const pixelY = offsetY + 2.5 + this.y * cellSize;
+        const scale = cellSize / 12; // Assuming 10x10 pixel sprites
 
         renderer.drawSprite(ctx, this.sprite, pixelX, pixelY, scale);
     }

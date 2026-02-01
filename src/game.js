@@ -103,7 +103,7 @@ const TUTORIAL_LEVELS = [
         ],
         innerWallPositions: [
         ],
-        tutorialText: "Collect coins! You can buy more detectors with 'B' (50 coins)."
+        tutorialText: "Collect coins! You can buy more detectors with 'B' (30 coins)."
     },
     {
         width: 30,
@@ -202,6 +202,7 @@ let gameState = {
     player: null,
     gameOver: false,
     coins: 0,
+    score: 0,
     roomNumber: 1,
     volume: 0.8,
     isDraggingVolume: false,
@@ -347,6 +348,7 @@ function startNewGame() {
     // Reset Game State
     gameState.gameOver = false;
     gameState.coins = 0;
+    gameState.score = 0;
     gameState.roomNumber = 1;
 
     if (isTutorialFinished()) {
@@ -543,12 +545,12 @@ function update() {
 
     // --- Buy Bomb Detector (B key) ---
     if (gameState.input.isJustPressed('KeyB')) {
-        if (gameState.coins >= 50) {
-            gameState.coins -= 50;
+        if (gameState.coins >= 30) {
+            gameState.coins -= 30;
             gameState.player.addBombDetector();
             console.log('Bought a bomb detector! Bomb Detectors: ' + gameState.player.bombDetectorCount);
         } else {
-            console.log('Not enough coins to buy a bomb detector (need 50)');
+            console.log('Not enough coins to buy a bomb detector (need 30)');
         }
     }
 
@@ -608,6 +610,7 @@ function update() {
                     }
 
                     gameState.coins += 10;
+                    gameState.score += 10;
                     break;
                 case PLAYER_MOVE_RESULT.ENEMY:
                 case PLAYER_MOVE_RESULT.BOMB:
@@ -925,7 +928,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
         drawKey(ctx, 'B', centerX - 15, y);
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('SHOP (50g)', centerX, y + labelGap);
+        ctx.fillText('SHOP (30g)', centerX, y + labelGap);
     }
     y += 30 + labelGap; // Final height adjustment
 
@@ -1132,8 +1135,12 @@ function render(ctx) {
         ctx.fillText('GAME OVER', width / 2, height / 2 - 20);
 
         ctx.font = '20px "Press Start 2P", monospace';
+        ctx.fillStyle = '#ffcc00'; // Highlight color (yellow)
+        ctx.fillText(`Total Score: ${gameState.score}`, width / 2, height / 2 + 50);
+
+        ctx.font = '16px "Press Start 2P", monospace';
         ctx.fillStyle = 'white';
-        ctx.fillText('Press R to Restart', width / 2, height / 2 + 50);
+        ctx.fillText('Press R to Restart', width / 2, height / 2 + 100);
     }
     // --- Transition Overlay ---
     if (gameState.transitioning) {

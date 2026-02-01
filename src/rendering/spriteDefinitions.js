@@ -8,7 +8,7 @@ export const SPRITES = {
     BOMB_DETECTOR_DANGER: { sheet: 'sheet_1', row: 14, col: 3 },  // Red/danger bomb detector (bomb underneath)
     BOMB_DETECTOR_SAFE: { sheet: 'sheet_1', row: 15, col: 3 },    // Green/safe bomb detector (no bomb)
 
-    FLAG: { sheet: 'sheet_1', row: 23, col: 21 },    // Green/safe bomb detector (no bomb)
+    FLAG: { sheet: 'sheet_1', row: 23, col: 17 },    // Green/safe bomb detector (no bomb)
 
     // Room tile sprites
     FLOOR_1: { sheet: 'sheet_1', row: 30, col: 13 },    // Floor tile variant 1

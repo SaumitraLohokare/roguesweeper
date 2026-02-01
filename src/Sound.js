@@ -85,6 +85,13 @@ export class SoundManager {
 
     playDamage() { this.playTone(100, 'sawtooth', 0.3, 0.2) };
 
+    playBomb() {
+        // Explosion sound: low rumble followed by higher pitch
+        const now = this.audioCtx.currentTime;
+        this.playTone(80, 'sawtooth', 0.2, 0.3, now);
+        this.playTone(150, 'square', 0.15, 0.2, now + 0.05);
+    };
+
     playWin() {
         const now = this.audioCtx.currentTime;
         // Major arpeggio

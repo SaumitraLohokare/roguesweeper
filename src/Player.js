@@ -67,11 +67,14 @@ export class Player {
     /**
      * Reduces player health by the given amount
      * @param {number} amount 
+     * @param {boolean} playSound - Whether to play the damage sound (default true)
      * @returns {number} Current health
      */
-    takeDamage(amount) {
+    takeDamage(amount, playSound = true) {
         this.health -= amount;
-        getSoundManager().playDamage();
+        if (playSound) {
+            getSoundManager().playDamage();
+        }
 
         // Trigger red flash effect
         this.isDamageFlashing = true;

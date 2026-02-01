@@ -7,12 +7,13 @@ import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
 import { ParticleSystem } from './rendering/ParticleSystem.js';
+import { FloatingTextSystem } from './rendering/FloatingText.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
-    { maxRoom: 6, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
-    { maxRoom: 10, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
-    { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
+    { maxRoom: 3, config: { width: 12, height: 12, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
+    { maxRoom: 6, config: { width: 18, height: 18, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
+    { maxRoom: 10, config: { width: 24, height: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
+    { maxRoom: Infinity, config: { width: 30, height: 30, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
 ];
 
 const TUTORIAL_COMPLETED_KEY = 'roguesweeper_tutorial_finished';
@@ -34,7 +35,6 @@ const TUTORIAL_LEVELS = [
     {
         width: 7,
         height: 7,
-        cellSize: 40,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [
@@ -46,12 +46,12 @@ const TUTORIAL_LEVELS = [
         ],
         innerWallPositions: [
             { x: 5, y: 5 },
-        ]
+        ],
+        tutorialText: "Welcome! Use WASD to move. Reach the exit at the bottom."
     },
     {
         width: 7,
         height: 9,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [],
@@ -65,12 +65,12 @@ const TUTORIAL_LEVELS = [
             { x: 2, y: 5 },
             { x: 4, y: 5 },
             { x: 5, y: 5 },
-        ]
+        ],
+        tutorialText: "Enemies move when you do. Use Arrow Keys to attack them!"
     },
     {
         width: 4,
         height: 10,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [
@@ -82,12 +82,12 @@ const TUTORIAL_LEVELS = [
         coinPositions: [
         ],
         innerWallPositions: [
-        ]
+        ],
+        tutorialText: "Switch to Bomb Detector with Space. Mark suspect tiles with Arrow Keys."
     },
     {
         width: 3,
         height: 10,
-        cellSize: 32,
         entranceSide: SIDE.TOP,
         exitSide: SIDE.BOTTOM,
         bombPositions: [],
@@ -98,89 +98,109 @@ const TUTORIAL_LEVELS = [
             { x: 1, y: 6 },
         ],
         innerWallPositions: [
-        ]
+        ],
+        tutorialText: "Collect coins! You can buy more detectors with 'B' (30 coins)."
     },
-    {
-        width: 30,
-        height: 15,
-        cellSize: 24,
-        entranceSide: SIDE.TOP,
-        exitSide: SIDE.BOTTOM,
-        bombPositions: [
-            { x: 3, y: 3 },
-            { x: 4, y: 3 },
-            { x: 5, y: 3 },
-            { x: 4, y: 4 },
-            { x: 4, y: 5 },
+    // {
+    //     width: 30,
+    //     height: 15,
+    //     entranceSide: SIDE.TOP,
+    //     exitSide: SIDE.BOTTOM,
+    //     bombPositions: [
+    //         { x: 3, y: 3 },
+    //         { x: 4, y: 3 },
+    //         { x: 5, y: 3 },
+    //         { x: 4, y: 4 },
+    //         { x: 4, y: 5 },
 
-            { x: 8, y: 3 },
-            { x: 8, y: 4 },
-            { x: 8, y: 5 },
-            { x: 9, y: 4 },
-            { x: 10, y: 3 },
-            { x: 10, y: 4 },
-            { x: 10, y: 5 },
+    //         { x: 8, y: 3 },
+    //         { x: 8, y: 4 },
+    //         { x: 8, y: 5 },
+    //         { x: 9, y: 4 },
+    //         { x: 10, y: 3 },
+    //         { x: 10, y: 4 },
+    //         { x: 10, y: 5 },
 
-            { x: 13, y: 4 },
-            { x: 13, y: 5 },
-            { x: 14, y: 3 },
-            { x: 15, y: 4 },
-            { x: 15, y: 5 },
+    //         { x: 13, y: 4 },
+    //         { x: 13, y: 5 },
+    //         { x: 14, y: 3 },
+    //         { x: 15, y: 4 },
+    //         { x: 15, y: 5 },
 
-            { x: 13, y: 4 },
-            { x: 13, y: 5 },
-            { x: 14, y: 3 },
-            { x: 15, y: 4 },
-            { x: 15, y: 5 },
+    //         { x: 13, y: 4 },
+    //         { x: 13, y: 5 },
+    //         { x: 14, y: 3 },
+    //         { x: 15, y: 4 },
+    //         { x: 15, y: 5 },
 
-            { x: 18, y: 5 },
-            { x: 18, y: 4 },
-            { x: 18, y: 3 },
-            { x: 19, y: 3 },
-            { x: 20, y: 4 },
+    //         { x: 18, y: 5 },
+    //         { x: 18, y: 4 },
+    //         { x: 18, y: 3 },
+    //         { x: 19, y: 3 },
+    //         { x: 20, y: 4 },
 
-            { x: 21, y: 3 },
-            { x: 21, y: 4 },
-            { x: 21, y: 5 },
+    //         { x: 21, y: 3 },
+    //         { x: 21, y: 4 },
+    //         { x: 21, y: 5 },
 
-            { x: 24, y: 3 },
-            { x: 24, y: 4 },
-            { x: 24, y: 5 },
-            { x: 25, y: 4 },
-            { x: 26, y: 3 },
-            { x: 26, y: 5 },
+    //         { x: 24, y: 3 },
+    //         { x: 24, y: 4 },
+    //         { x: 24, y: 5 },
+    //         { x: 25, y: 4 },
+    //         { x: 26, y: 3 },
+    //         { x: 26, y: 5 },
 
-            { x: 3, y: 9 },
-            { x: 4, y: 10 },
-            { x: 5, y: 9 },
-            { x: 4, y: 11 },
+    //         { x: 3, y: 9 },
+    //         { x: 4, y: 10 },
+    //         { x: 5, y: 9 },
+    //         { x: 4, y: 11 },
 
-            { x: 8, y: 9 },
-            { x: 9, y: 9 },
-            { x: 10, y: 9 },
-            { x: 8, y: 10 },
-            { x: 10, y: 10 },
-            { x: 8, y: 11 },
-            { x: 9, y: 11 },
-            { x: 10, y: 11 },
+    //         { x: 8, y: 9 },
+    //         { x: 9, y: 9 },
+    //         { x: 10, y: 9 },
+    //         { x: 8, y: 10 },
+    //         { x: 10, y: 10 },
+    //         { x: 8, y: 11 },
+    //         { x: 9, y: 11 },
+    //         { x: 10, y: 11 },
 
-            { x: 14, y: 9 },
-            { x: 14, y: 10 },
-            { x: 14, y: 11 },
-            { x: 15, y: 11 },
-            { x: 16, y: 11 },
-            { x: 16, y: 10 },
-            { x: 16, y: 9 },
-        ],
-        enemyPositions: [
-        ],
-        coinPositions: [
-        ],
-        innerWallPositions: [
-        ]
-    }
+    //         { x: 14, y: 9 },
+    //         { x: 14, y: 10 },
+    //         { x: 14, y: 11 },
+    //         { x: 15, y: 11 },
+    //         { x: 16, y: 11 },
+    //         { x: 16, y: 10 },
+    //         { x: 16, y: 9 },
+    //     ],
+    //     enemyPositions: [
+    //     ],
+    //     coinPositions: [
+    //     ],
+    //     innerWallPositions: [
+    //     ],
+    //     tutorialText: "The floor is yours. Good luck reaching the deep dungeon!"
+    // }
 
 ];
+
+/**
+ * Gets the available middle panel size for room rendering
+ * @returns {{width: number, height: number}} Available dimensions in pixels
+ */
+function getMiddlePanelSize() {
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas) return { width: 800, height: 600 }; // Default fallback
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const minSidePanelWidth = 250;
+    const maxMiddleWidth = width - (minSidePanelWidth * 2);
+
+    let middleSize = Math.min(height, maxMiddleWidth);
+    if (middleSize < 0) middleSize = width;
+
+    return { width: middleSize, height: middleSize };
+}
 
 function getRoomConfig(roomNumber) {
     const tier = DIFFICULTY_TIERS.find(t => roomNumber <= t.maxRoom);
@@ -196,12 +216,14 @@ let gameState = {
     player: null,
     gameOver: false,
     coins: 0,
+    score: 0,
     roomNumber: 1,
     volume: 0.8,
     isDraggingVolume: false,
     volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
     currentTutorialIndex: 0,  // Track tutorial progress: 0-based index, -1 means tutorials complete
     particleSystem: null,
+    floatingTextSystem: null,
     transitioning: false,
     transitionAlpha: 0,
     transitionState: 'IN', // 'IN' (fading in new room) or 'OUT' (fading out old room)
@@ -213,6 +235,7 @@ export function initGame(canvas, ctx) {
     // Initialize sprite renderer (works with multiple sheets)
     gameState.spriteRenderer = new SpriteRenderer();
     gameState.particleSystem = new ParticleSystem();
+    gameState.floatingTextSystem = new FloatingTextSystem();
 
     // Initialize input
     gameState.input = new Input();
@@ -339,6 +362,7 @@ function startNewGame() {
     // Reset Game State
     gameState.gameOver = false;
     gameState.coins = 0;
+    gameState.score = 0;
     gameState.roomNumber = 1;
 
     if (isTutorialFinished()) {
@@ -364,11 +388,15 @@ function loadTutorialLevel(index) {
 
     const tutorialConfig = TUTORIAL_LEVELS[index];
 
+    // Get available screen dimensions
+    const panelSize = getMiddlePanelSize();
+
     // Create room with manual setup enabled
     gameState.currentRoom = new Room({
         width: tutorialConfig.width,
         height: tutorialConfig.height,
-        cellSize: tutorialConfig.cellSize,
+        availableWidth: panelSize.width,
+        availableHeight: panelSize.height,
         entranceSide: tutorialConfig.entranceSide,
         exitSide: tutorialConfig.exitSide,
         exitPos: tutorialConfig.exitPos, // Optional
@@ -457,9 +485,14 @@ function startRandomLevel(entranceSide) {
     // Get config for new level
     const config = getRoomConfig(gameState.roomNumber);
 
+    // Get available screen dimensions
+    const panelSize = getMiddlePanelSize();
+
     // Create new room
     gameState.currentRoom = new Room({
         ...config,
+        availableWidth: panelSize.width,
+        availableHeight: panelSize.height,
         entranceSide: entranceSide
     });
 
@@ -535,12 +568,12 @@ function update() {
 
     // --- Buy Bomb Detector (B key) ---
     if (gameState.input.isJustPressed('KeyB')) {
-        if (gameState.coins >= 50) {
-            gameState.coins -= 50;
+        if (gameState.coins >= 30) {
+            gameState.coins -= 30;
             gameState.player.addBombDetector();
             console.log('Bought a bomb detector! Bomb Detectors: ' + gameState.player.bombDetectorCount);
         } else {
-            console.log('Not enough coins to buy a bomb detector (need 50)');
+            console.log('Not enough coins to buy a bomb detector (need 30)');
         }
     }
 
@@ -572,13 +605,47 @@ function update() {
                     break;
                 case PLAYER_MOVE_RESULT.COIN:
                     getSoundManager().playCoin();
+
+                    // Calculate coin count position for floating text
+                    // The coin count is displayed at the top-right of the middle panel
+                    const canvas = document.getElementById('gameCanvas');
+                    if (canvas && gameState.floatingTextSystem) {
+                        const width = canvas.width;
+                        const height = canvas.height;
+                        const minSidePanelWidth = 250;
+                        const maxMiddleWidth = width - (minSidePanelWidth * 2);
+                        let middleSize = Math.min(height, maxMiddleWidth);
+                        if (middleSize < 0) middleSize = width;
+                        const middleX = (width - middleSize) / 2;
+                        const middleY = (height - middleSize) / 2;
+                        const guiPadding = 20;
+
+                        // Position below the coin counter (top-right of middle section)
+                        const coinCountX = middleX + middleSize - guiPadding;
+                        const coinCountY = middleY + guiPadding + 30; // +30 to position below the text
+
+                        gameState.floatingTextSystem.spawn('+10', coinCountX, coinCountY, {
+                            color: '#ffcc00',
+                            duration: 1200,
+                            riseDistance: 50,
+                            fontSize: '16px'
+                        });
+                    }
+
                     gameState.coins += 10;
+                    gameState.score += 10;
                     break;
                 case PLAYER_MOVE_RESULT.ENEMY:
+                    // Enemy hit - play damage sound
+                    const enemyHealthRemaining = gameState.player.takeDamage(1);
+                    console.log(`Hit by enemy! Health: ${enemyHealthRemaining}`);
+                    gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
+                    break;
                 case PLAYER_MOVE_RESULT.BOMB:
-                    const remainingHealth = gameState.player.takeDamage(1);
-                    console.log(`Hit! Health: ${remainingHealth}`);
-                    // Particle for damage/explosion at player position
+                    // Bomb explosion - play bomb sound only (not damage sound)
+                    getSoundManager().playBomb();
+                    const bombHealthRemaining = gameState.player.takeDamage(1, false);
+                    console.log(`Hit by bomb! Health: ${bombHealthRemaining}`);
                     gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
                     break;
 
@@ -649,6 +716,11 @@ function update() {
         gameState.particleSystem.update();
     }
 
+    // Update floating texts
+    if (gameState.floatingTextSystem) {
+        gameState.floatingTextSystem.update();
+    }
+
     if (gameState.currentRoom) {
         gameState.currentRoom.update();
     }
@@ -658,38 +730,39 @@ function update() {
 
 // Helper to draw a keycap
 // Helper to draw a keycap
-function drawKey(ctx, text, x, y, width = 30) {
-    const height = 30;
+function drawKey(ctx, text, x, y, width = 30, scale = 1) {
+    const height = 30 * scale;
+    const scaledWidth = width * scale;
 
     // Key shadow (side)
     ctx.fillStyle = '#444';
-    ctx.fillRect(x + 2, y + 4, width, height);
+    ctx.fillRect(x + 2 * scale, y + 4 * scale, scaledWidth, height);
 
     // Key top
     ctx.fillStyle = '#eee';
-    ctx.fillRect(x, y, width, height);
+    ctx.fillRect(x, y, scaledWidth, height);
 
     // Label or Arrow
     ctx.fillStyle = '#111';
 
     if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(text)) {
-        drawArrow(ctx, text, x, y, width, height);
+        drawArrow(ctx, text, x, y, scaledWidth, height, scale);
     } else {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '12px "Press Start 2P", monospace';
-        ctx.fillText(text, x + width / 2, y + height / 2);
+        ctx.font = `${Math.floor(12 * scale)}px "Press Start 2P", monospace`;
+        ctx.fillText(text, x + scaledWidth / 2, y + height / 2);
     }
 }
 
-function drawArrow(ctx, direction, x, y, keyWidth, keyHeight) {
+function drawArrow(ctx, direction, x, y, keyWidth, keyHeight, scale = 1) {
     const cx = x + keyWidth / 2;
     const cy = y + keyHeight / 2;
-    const size = 6; // Arrow size
+    const size = 6 * scale; // Arrow size
 
     ctx.beginPath();
     ctx.strokeStyle = '#111';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3 * scale;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -727,41 +800,45 @@ function drawArrow(ctx, direction, x, y, keyWidth, keyHeight) {
 }
 
 // Helper to separate calculating height from rendering
-const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
+const renderLeftPanel = (ctx, centerX, startY, panelWidth, calculateHeightOnly = false) => {
+    // Calculate dynamic scale based on panel width (base: 250px)
+    const baseWidth = 250;
+    const scale = Math.max(0.7, Math.min(1.3, panelWidth / baseWidth));
+
     let y = startY || 0;
     const startYPos = y;
 
     // Title
     if (!calculateHeightOnly) {
-        ctx.font = '24px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(24 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ffcc00';
         ctx.shadowColor = '#d35400';
-        ctx.shadowOffsetY = 4;
+        ctx.shadowOffsetY = 4 * scale;
         ctx.fillText('ROGUE', centerX, y);
     }
-    y += 35;
+    y += 35 * scale;
     if (!calculateHeightOnly) {
         ctx.fillText('SWEEPER', centerX, y);
         ctx.shadowColor = 'transparent'; // Reset shadow
     }
-    y += 50;
+    y += 50 * scale;
 
     // Theme Box
     if (!calculateHeightOnly) {
         ctx.fillStyle = '#333';
-        ctx.fillRect(centerX - 90, y - 20, 180, 40);
+        ctx.fillRect(centerX - 90 * scale, y - 20 * scale, 180 * scale, 40 * scale);
         ctx.strokeStyle = '#555';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(centerX - 90, y - 20, 180, 40);
+        ctx.lineWidth = 2 * scale;
+        ctx.strokeRect(centerX - 90 * scale, y - 20 * scale, 180 * scale, 40 * scale);
 
-        ctx.font = '14px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(14 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ff6666';
-        ctx.fillText('THEME: MASK', centerX, y + 5);
+        ctx.fillText('THEME: MASK', centerX, y + 5 * scale);
     }
-    y += 60;
+    y += 60 * scale;
 
     // Description
-    const lineHeight = 20;
+    const lineHeight = 20 * scale;
     const lines = [
         "The dungeon is",
         "full of secrets.",
@@ -775,7 +852,7 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
     ];
 
     if (!calculateHeightOnly) {
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#aaaaaa';
         lines.forEach(line => {
             ctx.fillText(line, centerX, y);
@@ -788,18 +865,22 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
     return y - startYPos;
 };
 
-const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
+const renderRightPanel = (ctx, centerX, startY, panelWidth, calculateHeightOnly = false) => {
+    // Calculate dynamic scale based on panel width (base: 250px)
+    const baseWidth = 250;
+    const scale = Math.max(0.7, Math.min(1.3, panelWidth / baseWidth));
+
     let y = startY || 0;
     const startYPos = y;
-    const sectionGap = 70;
-    const labelGap = 47.5;
+    const sectionGap = 70 * scale;
+    const labelGap = 47.5 * scale;
 
     // --- Volume Slider (Absolute Top Right) ---
     if (!calculateHeightOnly) {
-        const sliderWidth = 100;
-        const sliderHeight = 10;
-        const paddingRight = 20;
-        const paddingTop = 20;
+        const sliderWidth = 100 * scale;
+        const sliderHeight = 10 * scale;
+        const paddingRight = 20 * scale;
+        const paddingTop = 20 * scale;
 
         // Absolute positioning relative to canvas
         const sliderX = ctx.canvas.width - sliderWidth - paddingRight;
@@ -819,75 +900,107 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         // Draw knob
         ctx.fillStyle = '#fff';
-        ctx.fillRect(sliderX + fillWidth - 2, sliderY - 2, 4, sliderHeight + 4);
+        ctx.fillRect(sliderX + fillWidth - 2 * scale, sliderY - 2 * scale, 4 * scale, sliderHeight + 4 * scale);
 
         // Label
-        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(8 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('VOL', sliderX - 25, sliderY + 8);
+        ctx.fillText('VOL', sliderX - 25 * scale, sliderY + 8 * scale);
     }
     // No y increment -> slider is out of flow
 
     // Title
     if (!calculateHeightOnly) {
-        ctx.font = '20px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(20 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ffcc00';
         ctx.shadowColor = '#d35400';
-        ctx.shadowOffsetY = 4;
+        ctx.shadowOffsetY = 4 * scale;
         ctx.fillText('CONTROLS', centerX, y);
         ctx.shadowColor = 'transparent';
     }
-    y += 60; // Title margin
+    y += 60 * scale; // Title margin
 
     // Controls Layout
     // WASD
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'W', centerX - 15, y);
-        drawKey(ctx, 'A', centerX - 50, y + 35);
-        drawKey(ctx, 'S', centerX - 15, y + 35);
-        drawKey(ctx, 'D', centerX + 20, y + 35);
+        drawKey(ctx, 'W', centerX - 15 * scale, y, 30, scale);
+        drawKey(ctx, 'A', centerX - 50 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'S', centerX - 15 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'D', centerX + 20 * scale, y + 35 * scale, 30, scale);
     }
-    y += 35 + 30; // W row + ASD row (approx)
+    y += (35 + 30) * scale; // W row + ASD row (approx)
 
     if (!calculateHeightOnly) {
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('MOVEMENT', centerX, y + 20);
+        ctx.fillText('MOVEMENT', centerX, y + 20 * scale);
     }
     y += sectionGap;
 
     // Arrows
     if (!calculateHeightOnly) {
         // Up
-        drawKey(ctx, 'UP', centerX - 15, y);
+        drawKey(ctx, 'UP', centerX - 15 * scale, y, 30, scale);
         // Left, Down, Right
-        drawKey(ctx, 'LEFT', centerX - 50, y + 35);
-        drawKey(ctx, 'DOWN', centerX - 15, y + 35);
-        drawKey(ctx, 'RIGHT', centerX + 20, y + 35);
+        drawKey(ctx, 'LEFT', centerX - 50 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'DOWN', centerX - 15 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'RIGHT', centerX + 20 * scale, y + 35 * scale, 30, scale);
 
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('ATTACK / MARK', centerX, y + 35 + labelGap);
+        ctx.fillText('ATTACK / MARK', centerX, y + 35 * scale + labelGap);
     }
-    y += 35 + 35 + labelGap; // Up row + Down row + Label gap
+    y += (35 + 35) * scale + labelGap; // Up row + Down row + Label gap
 
     // Space
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'SPACE', centerX - 50, y, 100);
-        ctx.font = '10px "Press Start 2P", monospace';
+        drawKey(ctx, 'SPACE', centerX - 50 * scale, y, 100, scale);
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
         ctx.fillText('SWITCH ITEM', centerX, y + labelGap);
     }
-    y += sectionGap + 20;
+    y += sectionGap + 20 * scale;
 
     // B
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'B', centerX - 15, y);
-        ctx.font = '10px "Press Start 2P", monospace';
+        drawKey(ctx, 'B', centerX - 15 * scale, y, 30, scale);
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('SHOP (50g)', centerX, y + labelGap);
+        ctx.fillText('SHOP (30g)', centerX, y + labelGap);
     }
-    y += 30 + labelGap; // Final height adjustment
+    y += 30 * scale + labelGap;
+
+    // Mouse Click
+    if (!calculateHeightOnly) {
+        // Draw a simple mouse icon with highlighted left button
+        const mouseWidth = 24 * scale;
+        const mouseHeight = 32 * scale;
+
+        // Mouse body (shadow/outline)
+        ctx.fillStyle = '#444';
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 4 * scale, mouseWidth, mouseHeight);
+
+        // Mouse body (main)
+        ctx.fillStyle = '#eee';
+        ctx.fillRect(centerX - 12 * scale, y, mouseWidth, mouseHeight);
+
+        // Inner area (dark background)
+        ctx.fillStyle = '#444';
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 2 * scale, 20 * scale, 28 * scale);
+
+        // Center divider
+        ctx.fillStyle = '#222';
+        ctx.fillRect(centerX - 1 * scale, y + 2 * scale, 2 * scale, 14 * scale);
+
+        // Left button (highlighted)
+        ctx.fillStyle = '#ffcc00'; // Yellow highlight for left button
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 2 * scale, 9 * scale, 14 * scale);
+
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = '#888';
+        ctx.fillText('PLACE FLAG', centerX, y + mouseHeight + labelGap);
+    }
+    y += 32 * scale + labelGap; // Final height adjustment
 
     return y - startYPos;
 };
@@ -939,10 +1052,10 @@ function render(ctx) {
         const centerX = leftPanelWidth / 2;
 
         // Calculate total height first to center it
-        const contentHeight = renderLeftPanel(ctx, centerX, 0, true);
+        const contentHeight = renderLeftPanel(ctx, centerX, 0, leftPanelWidth, true);
         const startY = (height - contentHeight) / 2 + 10; // +10 optical adjustment using title baseline
 
-        renderLeftPanel(ctx, centerX, startY, false);
+        renderLeftPanel(ctx, centerX, startY, leftPanelWidth, false);
     }
 
     // --- Render Right Panel (Controls) ---
@@ -951,10 +1064,10 @@ function render(ctx) {
         const centerX = rightPanelStart + rightPanelWidth / 2;
 
         // Calculate total height first to center it
-        const contentHeight = renderRightPanel(ctx, centerX, 0, true);
+        const contentHeight = renderRightPanel(ctx, centerX, 0, rightPanelWidth, true);
         const startY = (height - contentHeight) / 2 + 10;
 
-        renderRightPanel(ctx, centerX, startY, false);
+        renderRightPanel(ctx, centerX, startY, rightPanelWidth, false);
     }
 
     // --- Render Middle Section (Game) ---
@@ -1024,6 +1137,58 @@ function render(ctx) {
         ctx.fillText(`${bombDetectorIndicator}Detector x${gameState.player.bombDetectorCount}`, middleX + guiPadding, middleY + middleSize - 35);
 
         ctx.shadowBlur = 0; // Reset
+
+        // Render Floating Texts (UI Space - rendered last so they appear on top)
+        if (gameState.floatingTextSystem) {
+            gameState.floatingTextSystem.render(ctx);
+        }
+    }
+
+    // --- Render Tutorial Text (Overlay on middle section) ---
+    if (gameState.currentTutorialIndex >= 0 && TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText) {
+        const text = TUTORIAL_LEVELS[gameState.currentTutorialIndex].tutorialText;
+        ctx.font = '12px "Press Start 2P", monospace';
+
+        const maxWidth = middleSize - 60; // Leave some space
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = ctx.measureText(currentLine + " " + word).width;
+            if (width < maxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+
+        const lineHeight = 20;
+        const padding = 15;
+        const longestLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
+        const boxWidth = longestLineWidth + padding * 2;
+        const boxHeight = lines.length * lineHeight + padding * 2;
+
+        const boxX = middleX + (middleSize - boxWidth) / 2;
+        const boxY = middleY + middleSize - boxHeight - 80; // Moved higher 
+
+        // Draw background box
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Draw text
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        lines.forEach((line, index) => {
+            ctx.fillText(line, middleX + middleSize / 2, boxY + padding + index * lineHeight + lineHeight / 2);
+        });
     }
 
     ctx.restore();
@@ -1040,8 +1205,12 @@ function render(ctx) {
         ctx.fillText('GAME OVER', width / 2, height / 2 - 20);
 
         ctx.font = '20px "Press Start 2P", monospace';
+        ctx.fillStyle = '#ffcc00'; // Highlight color (yellow)
+        ctx.fillText(`Total Score: ${gameState.score}`, width / 2, height / 2 + 50);
+
+        ctx.font = '16px "Press Start 2P", monospace';
         ctx.fillStyle = 'white';
-        ctx.fillText('Press R to Restart', width / 2, height / 2 + 50);
+        ctx.fillText('Press R to Restart', width / 2, height / 2 + 100);
     }
     // --- Transition Overlay ---
     if (gameState.transitioning) {

@@ -82,7 +82,87 @@ const TUTORIAL_LEVELS = [
         ],
         innerWallPositions: [
         ]
+    },
+    {
+        width: 30,
+        height: 15,
+        cellSize: 24,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 3, y: 3 },
+            { x: 4, y: 3 },
+            { x: 5, y: 3 },
+            { x: 4, y: 4 },
+            { x: 4, y: 5 },
+
+            { x: 8, y: 3 },
+            { x: 8, y: 4 },
+            { x: 8, y: 5 },
+            { x: 9, y: 4 },
+            { x: 10, y: 3 },
+            { x: 10, y: 4 },
+            { x: 10, y: 5 },
+
+            { x: 13, y: 4 },
+            { x: 13, y: 5 },
+            { x: 14, y: 3 },
+            { x: 15, y: 4 },
+            { x: 15, y: 5 },
+
+            { x: 13, y: 4 },
+            { x: 13, y: 5 },
+            { x: 14, y: 3 },
+            { x: 15, y: 4 },
+            { x: 15, y: 5 },
+
+            { x: 18, y: 5 },
+            { x: 18, y: 4 },
+            { x: 18, y: 3 },
+            { x: 19, y: 3 },
+            { x: 20, y: 4 },
+
+            { x: 21, y: 3 },
+            { x: 21, y: 4 },
+            { x: 21, y: 5 },
+
+            { x: 24, y: 3 },
+            { x: 24, y: 4 },
+            { x: 24, y: 5 },
+            { x: 25, y: 4 },
+            { x: 26, y: 3 },
+            { x: 26, y: 5 },
+
+            { x: 3, y: 9 },
+            { x: 4, y: 10 },
+            { x: 5, y: 9 },
+            { x: 4, y: 11 },
+
+            { x: 8, y: 9 },
+            { x: 9, y: 9 },
+            { x: 10, y: 9 },
+            { x: 8, y: 10 },
+            { x: 10, y: 10 },
+            { x: 8, y: 11 },
+            { x: 9, y: 11 },
+            { x: 10, y: 11 },
+
+            { x: 14, y: 9 },
+            { x: 14, y: 10 },
+            { x: 14, y: 11 },
+            { x: 15, y: 11 },
+            { x: 16, y: 11 },
+            { x: 16, y: 10 },
+            { x: 16, y: 9 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+        ]
     }
+
 ];
 
 function getRoomConfig(roomNumber) {
@@ -325,7 +405,7 @@ function startNextLevel() {
         setTutorialCompletedLevel(-1);
         if (gameState.player) {
             gameState.player.health = 3;
-            gameState.player.bombCount = 3;
+            gameState.player.bombDetectorCount = 3;
         }
         // Room number stays at 1 for the first random room
     } else {

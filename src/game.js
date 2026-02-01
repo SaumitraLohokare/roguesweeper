@@ -6,12 +6,180 @@ import { PLAYER_MOVE_RESULT, Room, SIDE } from './Room.js';
 import { Input } from './Input.js';
 import { Player } from './Player.js';
 import { getSoundManager } from './Sound.js';
+import { ParticleSystem } from './rendering/ParticleSystem.js';
 
 const DIFFICULTY_TIERS = [
-    { maxRoom: 2, config: { width: 15, height: 15, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 5, innerWallDensity: 0.15 } },
-    { maxRoom: 5, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
-    { maxRoom: 9, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
+    { maxRoom: 3, config: { width: 12, height: 12, cellSize: 30, coinCount: 3, bombCount: 10, enemyCount: 3, innerWallDensity: 0.15 } },
+    { maxRoom: 6, config: { width: 18, height: 18, cellSize: 30, coinCount: 5, bombCount: 15, enemyCount: 8, innerWallDensity: 0.45, minChunkSize: 6 } },
+    { maxRoom: 10, config: { width: 24, height: 24, cellSize: 24, coinCount: 8, bombCount: 25, enemyCount: 14, innerWallDensity: 0.55, minChunkSize: 6 } },
     { maxRoom: Infinity, config: { width: 30, height: 30, cellSize: 20, coinCount: 10, bombCount: 35, enemyCount: 20, innerWallDensity: 0.60, minChunkSize: 9 } }
+];
+
+const TUTORIAL_COMPLETED_KEY = 'roguesweeper_tutorial_finished';
+
+function getTutorialCompletedLevel() {
+    return parseInt(localStorage.getItem(TUTORIAL_COMPLETED_KEY)) || 0;
+}
+
+function isTutorialFinished() {
+    return getTutorialCompletedLevel() == -1;
+}
+
+function setTutorialCompletedLevel(completedLevel) {
+    localStorage.setItem(TUTORIAL_COMPLETED_KEY, completedLevel);
+}
+
+// Tutorial levels - premade levels that play before random generation
+const TUTORIAL_LEVELS = [
+    {
+        width: 7,
+        height: 7,
+        cellSize: 40,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 3, y: 3 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+            { x: 5, y: 5 },
+        ]
+    },
+    {
+        width: 7,
+        height: 9,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [],
+        enemyPositions: [
+            { x: 3, y: 5, isVertical: true },
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+            { x: 1, y: 5 },
+            { x: 2, y: 5 },
+            { x: 4, y: 5 },
+            { x: 5, y: 5 },
+        ]
+    },
+    {
+        width: 4,
+        height: 10,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 1, y: 3 },
+            { x: 1, y: 7 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+        ]
+    },
+    {
+        width: 3,
+        height: 10,
+        cellSize: 32,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [],
+        enemyPositions: [
+        ],
+        coinPositions: [
+            { x: 1, y: 3 },
+            { x: 1, y: 6 },
+        ],
+        innerWallPositions: [
+        ]
+    },
+    {
+        width: 30,
+        height: 15,
+        cellSize: 24,
+        entranceSide: SIDE.TOP,
+        exitSide: SIDE.BOTTOM,
+        bombPositions: [
+            { x: 3, y: 3 },
+            { x: 4, y: 3 },
+            { x: 5, y: 3 },
+            { x: 4, y: 4 },
+            { x: 4, y: 5 },
+
+            { x: 8, y: 3 },
+            { x: 8, y: 4 },
+            { x: 8, y: 5 },
+            { x: 9, y: 4 },
+            { x: 10, y: 3 },
+            { x: 10, y: 4 },
+            { x: 10, y: 5 },
+
+            { x: 13, y: 4 },
+            { x: 13, y: 5 },
+            { x: 14, y: 3 },
+            { x: 15, y: 4 },
+            { x: 15, y: 5 },
+
+            { x: 13, y: 4 },
+            { x: 13, y: 5 },
+            { x: 14, y: 3 },
+            { x: 15, y: 4 },
+            { x: 15, y: 5 },
+
+            { x: 18, y: 5 },
+            { x: 18, y: 4 },
+            { x: 18, y: 3 },
+            { x: 19, y: 3 },
+            { x: 20, y: 4 },
+
+            { x: 21, y: 3 },
+            { x: 21, y: 4 },
+            { x: 21, y: 5 },
+
+            { x: 24, y: 3 },
+            { x: 24, y: 4 },
+            { x: 24, y: 5 },
+            { x: 25, y: 4 },
+            { x: 26, y: 3 },
+            { x: 26, y: 5 },
+
+            { x: 3, y: 9 },
+            { x: 4, y: 10 },
+            { x: 5, y: 9 },
+            { x: 4, y: 11 },
+
+            { x: 8, y: 9 },
+            { x: 9, y: 9 },
+            { x: 10, y: 9 },
+            { x: 8, y: 10 },
+            { x: 10, y: 10 },
+            { x: 8, y: 11 },
+            { x: 9, y: 11 },
+            { x: 10, y: 11 },
+
+            { x: 14, y: 9 },
+            { x: 14, y: 10 },
+            { x: 14, y: 11 },
+            { x: 15, y: 11 },
+            { x: 16, y: 11 },
+            { x: 16, y: 10 },
+            { x: 16, y: 9 },
+        ],
+        enemyPositions: [
+        ],
+        coinPositions: [
+        ],
+        innerWallPositions: [
+        ]
+    }
+
 ];
 
 function getRoomConfig(roomNumber) {
@@ -28,7 +196,15 @@ let gameState = {
     player: null,
     gameOver: false,
     coins: 0,
-    roomNumber: 1
+    roomNumber: 1,
+    volume: 0.8,
+    isDraggingVolume: false,
+    volumeSlider: { x: 0, y: 0, w: 100, h: 20 }, // Store slider layout for click detection
+    currentTutorialIndex: 0,  // Track tutorial progress: 0-based index, -1 means tutorials complete
+    particleSystem: null,
+    transitioning: false,
+    transitionAlpha: 0,
+    transitionState: 'IN', // 'IN' (fading in new room) or 'OUT' (fading out old room)
 };
 
 export function initGame(canvas, ctx) {
@@ -36,9 +212,13 @@ export function initGame(canvas, ctx) {
 
     // Initialize sprite renderer (works with multiple sheets)
     gameState.spriteRenderer = new SpriteRenderer();
+    gameState.particleSystem = new ParticleSystem();
 
     // Initialize input
     gameState.input = new Input();
+
+    // Sync initial volume
+    getSoundManager().setMasterVolume(gameState.volume);
 
     // Load sprite sheet(s) - you can add more sheets here in the future
     gameState.spriteSheets.sheet_1 = new SpriteSheet('./assets/images/sheet_1.png', 10, 10, () => {
@@ -49,11 +229,73 @@ export function initGame(canvas, ctx) {
     // Register the sprite sheet with the renderer
     gameState.spriteRenderer.registerSpriteSheet('sheet_1', gameState.spriteSheets.sheet_1);
 
-    registerClicks(canvas);
+    registerInputs(canvas);
 }
 
-function registerClicks(canvas) {
+function registerInputs(canvas) {
+    // Helper to update volume from mouse position
+    const updateVolumeFromMouse = (clientX, clientY) => {
+        if (!gameState.volumeSlider) return;
+        const vs = gameState.volumeSlider;
+        // Check if within reasonable horizontal bounds specifically for the slider
+        // Just rely on X projection for the slider knob position
+        let newVol = (clientX - vs.x) / vs.w;
+        newVol = Math.max(0, Math.min(1, newVol));
+
+        gameState.volume = newVol;
+        getSoundManager().setMasterVolume(newVol);
+    };
+
+    canvas.addEventListener('mousedown', (event) => {
+        // Ensure audio context is resume and music is started on first interaction
+        getSoundManager().startMusic();
+
+        // Check if hitting volume slider
+        if (gameState.volumeSlider) {
+            const vs = gameState.volumeSlider;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 15; // Generous hit area
+
+            if (mx >= vs.x - padding && mx <= vs.x + vs.w + padding && my >= vs.y - padding && my <= vs.y + vs.h + padding) {
+                gameState.isDraggingVolume = true;
+                updateVolumeFromMouse(mx, my);
+                return;
+            }
+        }
+    });
+
+    window.addEventListener('mousemove', (event) => {
+        if (gameState.isDraggingVolume) {
+            updateVolumeFromMouse(event.clientX, event.clientY);
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        gameState.isDraggingVolume = false;
+    });
+
+    // Keep click for board interactions to prevent accidental flag placement while dragging
     canvas.addEventListener('click', (event) => {
+        // If we were just dragging (or mouseup happened), don't place flag? 
+        // Actually, if isDraggingVolume was just set to false in mouseup, we might need a way to know "did we drag"?
+        // But simpler: if the click is ON the slider, we ignore it (handled by mousedown/drag).
+        // If click is on board, we process it. 
+
+        // However, standard click logic might fire after mousedown/up.
+        // Let's check collision again.
+
+        if (gameState.volumeSlider) {
+            const vs = gameState.volumeSlider;
+            const mx = event.clientX;
+            const my = event.clientY;
+            const padding = 15;
+
+            if (mx >= vs.x - padding && mx <= vs.x + vs.w + padding && my >= vs.y - padding && my <= vs.y + vs.h + padding) {
+                return; // Ignore click on slider (handled by drag)
+            }
+        }
+
         const width = canvas.width;
         const height = canvas.height;
         let minSize = Math.min(height, width);
@@ -72,6 +314,7 @@ function registerClicks(canvas) {
 
         let mouseXPixel = Math.floor(mouseXPosition / gameState.currentRoom.cellSize);
         let mouseYPixel = Math.floor(mouseYPosition / gameState.currentRoom.cellSize);
+
         gameState.currentRoom.placeFlag(mouseXPixel, mouseYPixel);
     });
 }
@@ -98,52 +341,143 @@ function startNewGame() {
     gameState.coins = 0;
     gameState.roomNumber = 1;
 
-    // Random entrance side
-    const sides = [SIDE.TOP, SIDE.RIGHT, SIDE.BOTTOM, SIDE.LEFT];
-    const randomEntranceSide = sides[Math.floor(Math.random() * sides.length)];
+    if (isTutorialFinished()) {
+        console.log('Tutorial already completed, skipping to random rooms');
+        gameState.currentTutorialIndex = -1;
+        startRandomLevel(SIDE.TOP); // Initial room always enters from top
+    } else {
+        let currentTutorialIndex = getTutorialCompletedLevel();
+        gameState.currentTutorialIndex = currentTutorialIndex;  // Start from first tutorial
+        loadTutorialLevel(currentTutorialIndex);
+        console.log(`Tutorial level ${currentTutorialIndex} loaded`);
+    }
 
-    const config = getRoomConfig(gameState.roomNumber);
+    gameState.player.health = 3;
+    gameState.player.bombDetectorCount = 3;
+}
 
-    // Create a test room with config object
+function loadTutorialLevel(index) {
+    if (index < 0 || index >= TUTORIAL_LEVELS.length) {
+        console.error(`Invalid tutorial index: ${index}`);
+        return;
+    }
+
+    const tutorialConfig = TUTORIAL_LEVELS[index];
+
+    // Create room with manual setup enabled
     gameState.currentRoom = new Room({
-        ...config,
-        entranceSide: randomEntranceSide
+        width: tutorialConfig.width,
+        height: tutorialConfig.height,
+        cellSize: tutorialConfig.cellSize,
+        entranceSide: tutorialConfig.entranceSide,
+        exitSide: tutorialConfig.exitSide,
+        exitPos: tutorialConfig.exitPos, // Optional
+        manualSetup: true  // Skip random generation
     });
+
+    // Place inner walls
+    tutorialConfig.innerWallPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceInnerWall(pos.x, pos.y);
+    });
+
+    // Place bombs
+    tutorialConfig.bombPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceBomb(pos.x, pos.y);
+    });
+
+    // Place enemies
+    tutorialConfig.enemyPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceEnemy(pos.x, pos.y, pos.isVertical);
+    });
+
+    // Place coins
+    tutorialConfig.coinPositions.forEach(pos => {
+        gameState.currentRoom.manualPlaceCoin(pos.x, pos.y);
+    });
+
+    // Calculate hints after all entities are placed
+    gameState.currentRoom.calculateHints();
 
     // Create player at entrance
     const entrance = gameState.currentRoom.entrancePos;
-    gameState.player = new Player(entrance.x, entrance.y);
+    gameState.player = new Player(entrance.x, entrance.y, 1);
 
     // Trigger initial room logic for player start position
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
 
-    console.log('Room created:', gameState.currentRoom);
+    // Trigger Spawn Particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'spawn', 30, gameState.currentRoom.cellSize);
+    }
 }
 
 function startNextLevel() {
-    // Get the exit side from the current room before replacing it
+    console.log("Starting transition to next level...");
+    gameState.transitioning = true;
+    gameState.transitionState = 'OUT';
+    gameState.transitionAlpha = 0;
+}
+
+function performNextLevel() {
+    // Increment level
+    let currentTutorialIndex = getTutorialCompletedLevel();
+
+    // Check if we're still in tutorial mode
+    if (currentTutorialIndex >= 0) {
+        if (gameState.currentTutorialIndex < TUTORIAL_LEVELS.length - 1) {
+            // Load next tutorial level
+            gameState.currentTutorialIndex++;
+            setTutorialCompletedLevel(gameState.currentTutorialIndex);
+            loadTutorialLevel(gameState.currentTutorialIndex);
+            console.log(`Tutorial level ${gameState.currentTutorialIndex + 1} loaded`);
+            return;
+        }
+
+        // Last tutorial level finished
+        console.log('All tutorial levels completed!');
+        gameState.currentTutorialIndex = -1;
+        setTutorialCompletedLevel(-1);
+        if (gameState.player) {
+            gameState.player.health = 3;
+            gameState.player.bombDetectorCount = 3;
+        }
+        // Room number stays at 1 for the first random room
+    } else {
+        // Already in random generation mode, continue as normal
+        gameState.roomNumber++;
+    }
+
+    // Already in random generation mode, or just finished last tutorial
     const previousExitSide = gameState.currentRoom.exitSide;
     const newEntranceSide = Room.getOppositeSide(previousExitSide);
+    startRandomLevel(newEntranceSide);
+}
 
-    // Increment level
-    gameState.roomNumber++;
-
+function startRandomLevel(entranceSide) {
     // Get config for new level
     const config = getRoomConfig(gameState.roomNumber);
 
     // Create new room
     gameState.currentRoom = new Room({
         ...config,
-        entranceSide: newEntranceSide
+        entranceSide: entranceSide
     });
 
     const entrance = gameState.currentRoom.entrancePos;
 
-    // Move player to new entrance
-    gameState.player.x = entrance.x;
-    gameState.player.y = entrance.y;
+    if (!gameState.player) {
+        gameState.player = new Player(entrance.x, entrance.y, 3);
+    } else {
+        // Move player to new entrance
+        gameState.player.setPlayerPosition(entrance.x, entrance.y, gameState.currentRoom);
+    }
 
     gameState.currentRoom.onPlayerEnter(gameState.player.x, gameState.player.y);
+
+    // Trigger Spawn Particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'spawn', 30, gameState.currentRoom.cellSize);
+    }
 }
 
 function gameLoop(canvas, ctx) {
@@ -154,6 +488,24 @@ function gameLoop(canvas, ctx) {
 
     // Update game state
     update();
+
+    // Handle Transition
+    if (gameState.transitioning) {
+        if (gameState.transitionState === 'OUT') {
+            gameState.transitionAlpha += 0.01; // Slower fade
+            if (gameState.transitionAlpha >= 1) {
+                gameState.transitionAlpha = 1;
+                performNextLevel();
+                gameState.transitionState = 'IN';
+            }
+        } else if (gameState.transitionState === 'IN') {
+            gameState.transitionAlpha -= 0.01; // Slower fade
+            if (gameState.transitionAlpha <= 0) {
+                gameState.transitionAlpha = 0;
+                gameState.transitioning = false;
+            }
+        }
+    }
 
     // Render game
     render(ctx);
@@ -212,6 +564,7 @@ function update() {
             switch (playerEnterResultState) {
                 case PLAYER_MOVE_RESULT.REACHED_EXIT:
                     console.log("We have reached exit");
+                    getSoundManager().playWin();
                     startNextLevel();
                     break;
                 case PLAYER_MOVE_RESULT.NORMAL:
@@ -225,6 +578,8 @@ function update() {
                 case PLAYER_MOVE_RESULT.BOMB:
                     const remainingHealth = gameState.player.takeDamage(1);
                     console.log(`Hit! Health: ${remainingHealth}`);
+                    // Particle for damage/explosion at player position
+                    gameState.particleSystem.emit(gameState.player.x, gameState.player.y, 'explosion', 20, gameState.currentRoom.cellSize);
                     break;
 
             }
@@ -267,7 +622,7 @@ function update() {
                 }
             } else {
                 // --- Attack (sword equipped) ---
-                if (gameState.player.attack(arrowDx, arrowDy, gameState.currentRoom)) {
+                if (gameState.player.attack(arrowDx, arrowDy, gameState.currentRoom, gameState.particleSystem)) {
                     actionTaken = true;
                 }
             }
@@ -278,7 +633,7 @@ function update() {
     // Trigger only if player performed an action (Move or Attack)
     if (actionTaken) {
         if (gameState.player.health > 0) {
-            gameState.currentRoom.updateEnemies(gameState.player);
+            gameState.currentRoom.updateEnemies(gameState.player, gameState.particleSystem);
         }
 
         // --- Game State Check ---
@@ -289,6 +644,14 @@ function update() {
         }
     }
 
+    // Update particles
+    if (gameState.particleSystem) {
+        gameState.particleSystem.update();
+    }
+
+    if (gameState.currentRoom) {
+        gameState.currentRoom.update();
+    }
     // Update input state at the end of the frame
     gameState.input.update();
 }
@@ -431,6 +794,40 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
     const sectionGap = 70;
     const labelGap = 47.5;
 
+    // --- Volume Slider (Absolute Top Right) ---
+    if (!calculateHeightOnly) {
+        const sliderWidth = 100;
+        const sliderHeight = 10;
+        const paddingRight = 20;
+        const paddingTop = 20;
+
+        // Absolute positioning relative to canvas
+        const sliderX = ctx.canvas.width - sliderWidth - paddingRight;
+        const sliderY = paddingTop;
+
+        // Update hit rect for click/drag handler
+        gameState.volumeSlider = { x: sliderX, y: sliderY, w: sliderWidth, h: sliderHeight };
+
+        // Draw track
+        ctx.fillStyle = '#444';
+        ctx.fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
+
+        // Draw fill
+        ctx.fillStyle = '#ffcc00';
+        const fillWidth = sliderWidth * gameState.volume;
+        ctx.fillRect(sliderX, sliderY, fillWidth, sliderHeight);
+
+        // Draw knob
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(sliderX + fillWidth - 2, sliderY - 2, 4, sliderHeight + 4);
+
+        // Label
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.fillStyle = '#888';
+        ctx.fillText('VOL', sliderX - 25, sliderY + 8);
+    }
+    // No y increment -> slider is out of flow
+
     // Title
     if (!calculateHeightOnly) {
         ctx.font = '20px "Press Start 2P", monospace';
@@ -470,7 +867,7 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#888';
-        ctx.fillText('ACT / MARK', centerX, y + 35 + labelGap);
+        ctx.fillText('ATTACK / MARK', centerX, y + 35 + labelGap);
     }
     y += 35 + 35 + labelGap; // Up row + Down row + Label gap
 
@@ -585,6 +982,11 @@ function render(ctx) {
             gameState.player.render(ctx, renderer, gameState.currentRoom.cellSize, offsetX, offsetY);
         }
 
+        // Render Particles (Game Space)
+        if (gameState.particleSystem) {
+            gameState.particleSystem.render(ctx, offsetX, offsetY, gameState.currentRoom.cellSize);
+        }
+
         // --- GUI (Relative to Middle Section) ---
         ctx.shadowColor = 'black';
         ctx.shadowBlur = 2;
@@ -605,7 +1007,8 @@ function render(ctx) {
 
         // Draw Room Number (Top Center of Middle)
         ctx.textAlign = 'center';
-        ctx.fillText(`Room: ${gameState.roomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
+        const displayRoomNumber = gameState.currentTutorialIndex >= 0 ? 0 : gameState.roomNumber;
+        ctx.fillText(`Room: ${displayRoomNumber}`, middleX + middleSize / 2, middleY + guiPadding);
 
         // Draw Equipped Item and Flag Count (Bottom Left of Middle)
         ctx.textAlign = 'left';
@@ -639,5 +1042,15 @@ function render(ctx) {
         ctx.font = '20px "Press Start 2P", monospace';
         ctx.fillStyle = 'white';
         ctx.fillText('Press R to Restart', width / 2, height / 2 + 50);
+    }
+    // --- Transition Overlay ---
+    if (gameState.transitioning) {
+        // Only cover the middle panel area
+        const middleSize = Math.min(width, height);
+        const middleX = (width - middleSize) / 2;
+        const middleY = (height - middleSize) / 2;
+
+        ctx.fillStyle = `rgba(0, 0, 0, ${gameState.transitionAlpha})`;
+        ctx.fillRect(middleX, middleY, middleSize, middleSize);
     }
 }

@@ -724,38 +724,39 @@ function update() {
 
 // Helper to draw a keycap
 // Helper to draw a keycap
-function drawKey(ctx, text, x, y, width = 30) {
-    const height = 30;
+function drawKey(ctx, text, x, y, width = 30, scale = 1) {
+    const height = 30 * scale;
+    const scaledWidth = width * scale;
 
     // Key shadow (side)
     ctx.fillStyle = '#444';
-    ctx.fillRect(x + 2, y + 4, width, height);
+    ctx.fillRect(x + 2 * scale, y + 4 * scale, scaledWidth, height);
 
     // Key top
     ctx.fillStyle = '#eee';
-    ctx.fillRect(x, y, width, height);
+    ctx.fillRect(x, y, scaledWidth, height);
 
     // Label or Arrow
     ctx.fillStyle = '#111';
 
     if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(text)) {
-        drawArrow(ctx, text, x, y, width, height);
+        drawArrow(ctx, text, x, y, scaledWidth, height, scale);
     } else {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '12px "Press Start 2P", monospace';
-        ctx.fillText(text, x + width / 2, y + height / 2);
+        ctx.font = `${Math.floor(12 * scale)}px "Press Start 2P", monospace`;
+        ctx.fillText(text, x + scaledWidth / 2, y + height / 2);
     }
 }
 
-function drawArrow(ctx, direction, x, y, keyWidth, keyHeight) {
+function drawArrow(ctx, direction, x, y, keyWidth, keyHeight, scale = 1) {
     const cx = x + keyWidth / 2;
     const cy = y + keyHeight / 2;
-    const size = 6; // Arrow size
+    const size = 6 * scale; // Arrow size
 
     ctx.beginPath();
     ctx.strokeStyle = '#111';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3 * scale;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -793,41 +794,45 @@ function drawArrow(ctx, direction, x, y, keyWidth, keyHeight) {
 }
 
 // Helper to separate calculating height from rendering
-const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
+const renderLeftPanel = (ctx, centerX, startY, panelWidth, calculateHeightOnly = false) => {
+    // Calculate dynamic scale based on panel width (base: 250px)
+    const baseWidth = 250;
+    const scale = Math.max(0.7, Math.min(1.3, panelWidth / baseWidth));
+
     let y = startY || 0;
     const startYPos = y;
 
     // Title
     if (!calculateHeightOnly) {
-        ctx.font = '24px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(24 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ffcc00';
         ctx.shadowColor = '#d35400';
-        ctx.shadowOffsetY = 4;
+        ctx.shadowOffsetY = 4 * scale;
         ctx.fillText('ROGUE', centerX, y);
     }
-    y += 35;
+    y += 35 * scale;
     if (!calculateHeightOnly) {
         ctx.fillText('SWEEPER', centerX, y);
         ctx.shadowColor = 'transparent'; // Reset shadow
     }
-    y += 50;
+    y += 50 * scale;
 
     // Theme Box
     if (!calculateHeightOnly) {
         ctx.fillStyle = '#333';
-        ctx.fillRect(centerX - 90, y - 20, 180, 40);
+        ctx.fillRect(centerX - 90 * scale, y - 20 * scale, 180 * scale, 40 * scale);
         ctx.strokeStyle = '#555';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(centerX - 90, y - 20, 180, 40);
+        ctx.lineWidth = 2 * scale;
+        ctx.strokeRect(centerX - 90 * scale, y - 20 * scale, 180 * scale, 40 * scale);
 
-        ctx.font = '14px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(14 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ff6666';
-        ctx.fillText('THEME: MASK', centerX, y + 5);
+        ctx.fillText('THEME: MASK', centerX, y + 5 * scale);
     }
-    y += 60;
+    y += 60 * scale;
 
     // Description
-    const lineHeight = 20;
+    const lineHeight = 20 * scale;
     const lines = [
         "The dungeon is",
         "full of secrets.",
@@ -841,7 +846,7 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
     ];
 
     if (!calculateHeightOnly) {
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#aaaaaa';
         lines.forEach(line => {
             ctx.fillText(line, centerX, y);
@@ -854,18 +859,22 @@ const renderLeftPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
     return y - startYPos;
 };
 
-const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => {
+const renderRightPanel = (ctx, centerX, startY, panelWidth, calculateHeightOnly = false) => {
+    // Calculate dynamic scale based on panel width (base: 250px)
+    const baseWidth = 250;
+    const scale = Math.max(0.7, Math.min(1.3, panelWidth / baseWidth));
+
     let y = startY || 0;
     const startYPos = y;
-    const sectionGap = 70;
-    const labelGap = 47.5;
+    const sectionGap = 70 * scale;
+    const labelGap = 47.5 * scale;
 
     // --- Volume Slider (Absolute Top Right) ---
     if (!calculateHeightOnly) {
-        const sliderWidth = 100;
-        const sliderHeight = 10;
-        const paddingRight = 20;
-        const paddingTop = 20;
+        const sliderWidth = 100 * scale;
+        const sliderHeight = 10 * scale;
+        const paddingRight = 20 * scale;
+        const paddingTop = 20 * scale;
 
         // Absolute positioning relative to canvas
         const sliderX = ctx.canvas.width - sliderWidth - paddingRight;
@@ -885,75 +894,107 @@ const renderRightPanel = (ctx, centerX, startY, calculateHeightOnly = false) => 
 
         // Draw knob
         ctx.fillStyle = '#fff';
-        ctx.fillRect(sliderX + fillWidth - 2, sliderY - 2, 4, sliderHeight + 4);
+        ctx.fillRect(sliderX + fillWidth - 2 * scale, sliderY - 2 * scale, 4 * scale, sliderHeight + 4 * scale);
 
         // Label
-        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(8 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('VOL', sliderX - 25, sliderY + 8);
+        ctx.fillText('VOL', sliderX - 25 * scale, sliderY + 8 * scale);
     }
     // No y increment -> slider is out of flow
 
     // Title
     if (!calculateHeightOnly) {
-        ctx.font = '20px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(20 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#ffcc00';
         ctx.shadowColor = '#d35400';
-        ctx.shadowOffsetY = 4;
+        ctx.shadowOffsetY = 4 * scale;
         ctx.fillText('CONTROLS', centerX, y);
         ctx.shadowColor = 'transparent';
     }
-    y += 60; // Title margin
+    y += 60 * scale; // Title margin
 
     // Controls Layout
     // WASD
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'W', centerX - 15, y);
-        drawKey(ctx, 'A', centerX - 50, y + 35);
-        drawKey(ctx, 'S', centerX - 15, y + 35);
-        drawKey(ctx, 'D', centerX + 20, y + 35);
+        drawKey(ctx, 'W', centerX - 15 * scale, y, 30, scale);
+        drawKey(ctx, 'A', centerX - 50 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'S', centerX - 15 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'D', centerX + 20 * scale, y + 35 * scale, 30, scale);
     }
-    y += 35 + 30; // W row + ASD row (approx)
+    y += (35 + 30) * scale; // W row + ASD row (approx)
 
     if (!calculateHeightOnly) {
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('MOVEMENT', centerX, y + 20);
+        ctx.fillText('MOVEMENT', centerX, y + 20 * scale);
     }
     y += sectionGap;
 
     // Arrows
     if (!calculateHeightOnly) {
         // Up
-        drawKey(ctx, 'UP', centerX - 15, y);
+        drawKey(ctx, 'UP', centerX - 15 * scale, y, 30, scale);
         // Left, Down, Right
-        drawKey(ctx, 'LEFT', centerX - 50, y + 35);
-        drawKey(ctx, 'DOWN', centerX - 15, y + 35);
-        drawKey(ctx, 'RIGHT', centerX + 20, y + 35);
+        drawKey(ctx, 'LEFT', centerX - 50 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'DOWN', centerX - 15 * scale, y + 35 * scale, 30, scale);
+        drawKey(ctx, 'RIGHT', centerX + 20 * scale, y + 35 * scale, 30, scale);
 
-        ctx.font = '10px "Press Start 2P", monospace';
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
-        ctx.fillText('ATTACK / MARK', centerX, y + 35 + labelGap);
+        ctx.fillText('ATTACK / MARK', centerX, y + 35 * scale + labelGap);
     }
-    y += 35 + 35 + labelGap; // Up row + Down row + Label gap
+    y += (35 + 35) * scale + labelGap; // Up row + Down row + Label gap
 
     // Space
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'SPACE', centerX - 50, y, 100);
-        ctx.font = '10px "Press Start 2P", monospace';
+        drawKey(ctx, 'SPACE', centerX - 50 * scale, y, 100, scale);
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
         ctx.fillText('SWITCH ITEM', centerX, y + labelGap);
     }
-    y += sectionGap + 20;
+    y += sectionGap + 20 * scale;
 
     // B
     if (!calculateHeightOnly) {
-        drawKey(ctx, 'B', centerX - 15, y);
-        ctx.font = '10px "Press Start 2P", monospace';
+        drawKey(ctx, 'B', centerX - 15 * scale, y, 30, scale);
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#888';
         ctx.fillText('SHOP (30g)', centerX, y + labelGap);
     }
-    y += 30 + labelGap; // Final height adjustment
+    y += 30 * scale + labelGap;
+
+    // Mouse Click
+    if (!calculateHeightOnly) {
+        // Draw a simple mouse icon with highlighted left button
+        const mouseWidth = 24 * scale;
+        const mouseHeight = 32 * scale;
+
+        // Mouse body (shadow/outline)
+        ctx.fillStyle = '#444';
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 4 * scale, mouseWidth, mouseHeight);
+
+        // Mouse body (main)
+        ctx.fillStyle = '#eee';
+        ctx.fillRect(centerX - 12 * scale, y, mouseWidth, mouseHeight);
+
+        // Inner area (dark background)
+        ctx.fillStyle = '#444';
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 2 * scale, 20 * scale, 28 * scale);
+
+        // Center divider
+        ctx.fillStyle = '#222';
+        ctx.fillRect(centerX - 1 * scale, y + 2 * scale, 2 * scale, 14 * scale);
+
+        // Left button (highlighted)
+        ctx.fillStyle = '#ffcc00'; // Yellow highlight for left button
+        ctx.fillRect(centerX - 12 * scale + 2 * scale, y + 2 * scale, 9 * scale, 14 * scale);
+
+        ctx.font = `${Math.floor(10 * scale)}px "Press Start 2P", monospace`;
+        ctx.fillStyle = '#888';
+        ctx.fillText('PLACE FLAG', centerX, y + mouseHeight + labelGap);
+    }
+    y += 32 * scale + labelGap; // Final height adjustment
 
     return y - startYPos;
 };
@@ -1005,10 +1046,10 @@ function render(ctx) {
         const centerX = leftPanelWidth / 2;
 
         // Calculate total height first to center it
-        const contentHeight = renderLeftPanel(ctx, centerX, 0, true);
+        const contentHeight = renderLeftPanel(ctx, centerX, 0, leftPanelWidth, true);
         const startY = (height - contentHeight) / 2 + 10; // +10 optical adjustment using title baseline
 
-        renderLeftPanel(ctx, centerX, startY, false);
+        renderLeftPanel(ctx, centerX, startY, leftPanelWidth, false);
     }
 
     // --- Render Right Panel (Controls) ---
@@ -1017,10 +1058,10 @@ function render(ctx) {
         const centerX = rightPanelStart + rightPanelWidth / 2;
 
         // Calculate total height first to center it
-        const contentHeight = renderRightPanel(ctx, centerX, 0, true);
+        const contentHeight = renderRightPanel(ctx, centerX, 0, rightPanelWidth, true);
         const startY = (height - contentHeight) / 2 + 10;
 
-        renderRightPanel(ctx, centerX, startY, false);
+        renderRightPanel(ctx, centerX, startY, rightPanelWidth, false);
     }
 
     // --- Render Middle Section (Game) ---

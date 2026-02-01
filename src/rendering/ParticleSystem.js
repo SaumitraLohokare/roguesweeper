@@ -29,9 +29,9 @@ export class Particle {
         // but assuming particles use pixel coordinates relative to the room origin (0,0)
         // Adjusting for camera offset (offsetX, offsetY)
 
-        ctx.beginPath();
-        ctx.arc(offsetX + this.x, offsetY + this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        // Draw square particle centered at the position
+        const halfSize = this.size;
+        ctx.fillRect(offsetX + this.x - halfSize, offsetY + this.y - halfSize, this.size * 2, this.size * 2);
 
         ctx.globalAlpha = 1.0;
     }
@@ -77,15 +77,15 @@ export class ParticleSystem {
                     break;
 
                 case 'explosion':
-                    // Red/Orange/Yellow debris
+                    // Red/Orange/Grey debris - Balanced subtle
                     const exAngle = Math.random() * Math.PI * 2;
-                    const exSpeed = Math.random() * 4 + 2;
+                    const exSpeed = Math.random() * 2.5 + 1.5; // Medium speed (1.5-4)
                     vx = Math.cos(exAngle) * exSpeed;
                     vy = Math.sin(exAngle) * exSpeed;
-                    life = 40 + Math.random() * 20;
-                    const colors = ['#ff0000', '#ffaa00', '#ffff00', '#444444'];
+                    life = 30 + Math.random() * 10; // Medium life (30-40)
+                    const colors = ['#dd0000', '#ff8800', '#666666', '#888888']; // Semi-muted but visible colors
                     color = colors[Math.floor(Math.random() * colors.length)];
-                    size = Math.random() * 4 + 2;
+                    size = Math.random() * 2.5 + 1.5; // Medium size (1.5-4)
                     this.particles.push(new Particle(pixelX, pixelY, vx, vy, life, color, size, 0.9));
                     break;
 
